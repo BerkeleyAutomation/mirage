@@ -138,16 +138,14 @@ class OrbitRenderer(Renderer):
         z = depth_valid
 
         points = np.column_stack((x, y, z))
-        
         colors = rgb_image_np[valid_mask][:, :3]
+
+        if translation is not None and orientation is not None:
+            rotation_matrix = t3d.quaternions.quat2mat(orientation)
+            transformed_points = np.dot(points, rotation_matrix.T) + translation
+            points = transformed_points
 
         point_cloud = o3d.geometry.PointCloud()
         point_cloud.points = o3d.utility.Vector3dVector(points)
         point_cloud.colors = o3d.utility.Vector3dVector(colors / 255.0)
-        if translation is not None and orientation is not None:
-            transform = np.eye(4)
-            rotation_matrix = t3d.quaternions.quat2mat(orientation)
-            transform[:3, :3] = rotation_matrix
-            transform[:3, 3] = translation
-            point_cloud.transform(np.linalg.inv(transform))
         return point_cloud
