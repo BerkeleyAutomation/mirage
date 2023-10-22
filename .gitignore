@@ -1,0 +1,30 @@
+# Other unnecessary repos:
+_isaac_sim
+*.vscode
+Coppelia*
+isaac_gym
+kinpy
+meshcat-python
+mujoco*
+pytorch_kinematics
+sim-web-visualizer
+tracikpy
+RLBench
+issac_gym
+PyRep
+
+# Other global ignores
+__pycache__
+.ipynb_checkpoints
+
+# No videos
+*.mp4
+*.gif
+*.avi
+*.mov
+
+# No data files or npy txt
+*.pkl
+*.npy
+*.txt
+*.log

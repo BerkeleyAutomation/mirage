@@ -1,0 +1,8 @@
+xembody.egg-info
+meshes
+obj_meshes
+
+# imgs and point clouds
+*.jpg
+*.pcd
+*.png
