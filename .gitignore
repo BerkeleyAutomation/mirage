@@ -12,6 +12,7 @@ tracikpy
 RLBench
 issac_gym
 PyRep
+data/
 
 # Other global ignores
 __pycache__

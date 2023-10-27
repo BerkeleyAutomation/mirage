@@ -11,6 +11,7 @@ parser.add_argument("--num_envs", type=int, default=128, help="Number of environ
 parser.add_argument("--data_save_dir", type=str, default=None, help="Directory to save the files in.")
 parser.add_argument("--is_replay_robot", action="store_true", help="If the flag is set, this run will be that of the replay robot.")
 parser.add_argument("--checkpoint", type=str, default="/home/lawrence/xembody/Orbit/logs/rsl_rl/lift/Sep05_07-13-12/model_700.pt", help="Checkpoint of RSL_RL Policy.")
+parser.add_argument("--seed", type=int, default=0, help="Seed for the environment.")
 
 args_cli = parser.parse_args()
 
@@ -28,6 +29,7 @@ import pickle
 import numpy as np
 import time
 import os
+from moviepy.editor import ImageSequenceClip
 
 import omni.isaac.core.utils.prims as prim_utils
 from omni.isaac.cloner import GridCloner
@@ -51,13 +53,15 @@ from omni.isaac.orbit.robots.single_arm import SingleArmManipulator
 from omni.isaac.orbit.utils.assets import ISAAC_NUCLEUS_DIR
 from omni.isaac.orbit_envs.utils.wrappers.rsl_rl import RslRlVecEnvWrapper
 
+from xembody.src.orbit.orbit_renderer import OrbitRenderer
+
 import os
 import yaml
+import cv2
 
 from omni.isaac.orbit_envs import ORBIT_ENVS_DATA_DIR
 
 __all__ = ["RSLRL_PPO_CONFIG_FILE", "parse_rslrl_cfg"]
-
 
 RSLRL_PPO_CONFIG_FILE = {
     # classic
@@ -99,38 +103,88 @@ class ActionRecorder(gym.Wrapper):
     def __init__(self, env, file_path):
         super().__init__(env)
         self._file_path = file_path
-        self._obs = []
-    
+        self._out_dict = {
+            "block_pos": env.observation_manager.object_positions(env),
+            "obs": []
+        }
+
     def step(self, action):
-        obs, reward, terminated, info = self.env.step(action)
-        # self._obs.append(obs)
-        self._obs.append(get_ee_poses(self.env)[0])
+        obs, reward, terminated, info = self.env.step(action)   
+        ee_pose = get_ee_poses(self.env)[0]
+        recorded_obs = torch.cat((ee_pose, action[:, -1]), dim=0)
+        self._out_dict["obs"].append(recorded_obs)
         with open(self._file_path, "wb") as f:
-            pickle.dump(self._obs, f)
+            pickle.dump(self._out_dict, f)
         return obs, reward, terminated, info
+    
+    def reset(self):
+        out = self.env.reset()
+        self._out_dict["block_pos"] = self.env.observation_manager.object_positions(self.env)
+        return out
 
 class ReplayAgent(object):
 
-    def __init__(self, source_data_file: str):
+    def __init__(self, source_data_file: str, env):
         self.source_data_file = source_data_file
 
         # Load up the data
         with open(self.source_data_file, 'rb') as f: 
-            self.data = pickle.load(f)
+            self.prev_dict = pickle.load(f)
+            self.data = self.prev_dict["obs"]
+            self.block_pos = self.prev_dict["block_pos"]
+
+            env_ids = torch.tensor([0], device=env.device)
+            self.block_pos[:, 0:3] += env.envs_positions[env_ids]
+            # env.object.set_root_state(self.block_pos, env_ids=env_ids)
+
         self.step = 0
 
     def get_initial_gripper_pose(self):
         return self.data[0]
     
     def act(self):
-        action = np.zeros(8)
         if self.step < len(self.data):
             action = self.data[self.step]
-            action = action.cpu().numpy()
+            action[-1] *= -1
+        else:
+            return False
         self.step += 1
-        gripper = [1.0]  # Always open
-        return torch.from_numpy(np.concatenate([action, gripper], axis=-1)[None, :]).to('cuda:0')
+        return action[None, :]
+
+class VideoRecorderWithOrbit(gym.Wrapper):        
+    """
+    Writes a video file with images gathered from an OrbitRenderer
+    """
+
+    def __init__(self, env, video_folder, step_trigger):
+        super().__init__(env)
+        self._video_folder = video_folder
+        self._step_trigger = step_trigger
+        self._step = 0
+        self._frames = []
+
+        self._orbit_renderer = OrbitRenderer(robot_path="/World/envs/env_0/Robot", device="cuda", use_segmentation=False, resolution=(720, 1280))
+        
+        intrinsic_matrix = np.array([[528.433756, 0.0, 320.5],
+                                    [0.0, 528.433756, 240.5],
+                                    [0.0, 0.0, 1.0]])
+        camera_translation = np.array([0.75, 0.75, 1])
+
+        self._orbit_renderer.initialize(camera_translation, intrinsics=intrinsic_matrix)
+
+    def step(self, action):
+        obs, reward, terminated, info = self.env.step(action)
+        if self._step_trigger(self._step):
+            render_result = self._orbit_renderer.render_current_view()
+            frame = render_result.rgb.cpu().numpy()[:, :, :3]
+            self._frames.append(frame)
+        self._step += 1
+        return obs, reward, terminated, info
     
+    def release(self):
+        clip = ImageSequenceClip(self._frames, fps=1 / self.env.dt)
+        clip.write_videofile(os.path.join(self._video_folder, "video.mp4"), fps=1 / self.env.dt)
+
 """
 Main
 """
@@ -152,21 +206,28 @@ def get_robot_conf(robot_name: str):
     return robot_cfg
     
 def make_recorded_env(env_cfg, robot_cfg, video_folder, file_path):
+    os.makedirs(video_folder, exist_ok=True)
     env_cfg.robot = robot_cfg
-    
-    env_cfg.viewer.resolution = (640, 480)
     
     env = gym.make(args_cli.task, cfg=env_cfg, headless=args_cli.headless, viewport=True)    
     
     video_kwargs = {
         "video_folder": video_folder,
-        "step_trigger": lambda step: step % 1500 == 0,
-        "video_length": 200,
+        "step_trigger": lambda step: step % 1 == 0,
     }
-
-    env = gym.wrappers.RecordVideo(env, **video_kwargs)
+    env = VideoRecorderWithOrbit(env, **video_kwargs)
     env = ActionRecorder(env, file_path)
     return env
+
+def make_recorded_env_for_outer(env_cfg, robot_cfg, video_folder, file_path):
+    os.makedirs(video_folder, exist_ok=True)
+    env_cfg.robot = robot_cfg
+    
+    env = gym.make(args_cli.task, cfg=env_cfg, headless=args_cli.headless, viewport=True)    
+    
+    env = ActionRecorder(env, file_path)
+    return env
+
 
 def get_random_action():
     arm = np.random.normal(0.0, 0.4, size=(6,))
@@ -191,7 +252,8 @@ def main():
         # modify configuration
         env_cfg.control.control_type = "default"
         env_cfg.control.inverse_kinematics.command_type = "pose_rel"
-        env_cfg.terminations.episode_timeout = False
+        env_cfg.terminations.episode_timeout = True
+        env_cfg.seed = args_cli.seed
         # create environment
         env = make_recorded_env(env_cfg, robot_cfg, save_dir_source, save_dir_source_data_name)
         env = RslRlVecEnvWrapper(env)
@@ -207,18 +269,21 @@ def main():
 
         # simulate environment
         print('Relative errors:')
-        prev_ee_position = torch.zeros(7, device=env.device)
-        for _ in range(200):
+        done = torch.tensor([0], device=env.device)
+        while torch.sum(done) == 0:
             # convert to torch
             actions = policy(obs)
+            print('Policy output', actions)
             # apply actions
-            obs, _, _, _, _ = env.step(actions)
+            obs, x, y, done, info = env.step(actions)
             curr_ee = get_ee_poses(env)[0]
-            # print_pose_errors(curr_ee, prev_ee_position)
-            prev_ee_position = curr_ee
             # check if simulator is stopped
             if env.unwrapped.sim.is_stopped():
                 break
+        is_success = (info["is_success"].sum() > 0).cpu().numpy()
+        with open(os.path.join(save_dir_source, 'is_success.txt'), 'wb') as f:
+            f.write(str(is_success).encode())
+        env.release()
     else:
         save_dir_target = f'{args_cli.data_save_dir}/target_robot'
         save_dir_target_data_name = os.path.join(save_dir_target, 'data.pkl')
@@ -226,26 +291,59 @@ def main():
         env_cfg.control.control_type = "inverse_kinematics"
         env_cfg.control.inverse_kinematics.command_type = "pose_abs"
         env_cfg.terminations.episode_timeout = False
-        env = make_recorded_env(env_cfg, robot_cfg, save_dir_target, save_dir_target_data_name)
+        env_cfg.seed = args_cli.seed
+        env = make_recorded_env_for_outer(env_cfg, robot_cfg, save_dir_target, save_dir_target_data_name)
         env.reset()
 
-        follower_actor = ReplayAgent(save_dir_source_data_name)
+        follower_actor = ReplayAgent(save_dir_source_data_name, env)
         start_pose = follower_actor.get_initial_gripper_pose()
         # env.robot.articulations.set_joint_positions(start_pose)
         
         print('Absolute errors:')
-        for _ in range(200):
-            actions = follower_actor.act()
-            translation_error = torch.Tensor([10000000000]).to(env.device)
-            # apply actions
-            while translation_error.cpu().numpy() > 0.01:
-                obs, _, _, _ = env.step(actions)
-                ee_pose = get_ee_poses(env)[0]
-                translation_error = torch.linalg.norm(actions[0, :3] - ee_pose[:3])
-                print_pose_errors(get_ee_poses(env)[0], actions[0, :7])
-                # check if simulator is stopped
-            if env.unwrapped.sim.is_stopped():
-                break
+        prev_gripper_action = None
+        MAX_ITERS = 20
+        with torch.no_grad():
+            done = torch.tensor([0], device=env.device)
+            _frames = []
+            _orbit_renderer = OrbitRenderer(robot_path="/World/envs/env_0/Robot", device="cuda", use_segmentation=False, resolution=(720, 1280))
+            intrinsic_matrix = np.array([[528.433756, 0.0, 320.5],
+                                        [0.0, 528.433756, 240.5],
+                                        [0.0, 0.0, 1.0]])
+            camera_translation = np.array([0.75, 0.75, 1])
+            _orbit_renderer.initialize(camera_translation, intrinsics=intrinsic_matrix)
+
+            while torch.sum(done) == 0:
+                iter = 0
+                render_result = _orbit_renderer.render_current_view()
+                frame = render_result.rgb.cpu().numpy()[:, :, :3]
+                _frames.append(frame)
+                actions = follower_actor.act()
+                if actions is False:
+                    break
+                gripper_action = torch.clone(actions[0, -1])
+                if prev_gripper_action is None:
+                    prev_gripper_action = torch.clone(gripper_action)
+                actions[0, -1] = torch.clone(prev_gripper_action)
+                translation_error = torch.Tensor([10000000000]).to(env.device)
+                # apply actions
+                while translation_error.cpu().numpy() > 0.05 and iter < MAX_ITERS:
+                    obs, _, done, info = env.step(actions)
+                    ee_pose = get_ee_poses(env)[0]
+                    translation_error = torch.linalg.norm(actions[0, :7] - ee_pose[:7])
+                    print_pose_errors(get_ee_poses(env)[0], actions[0, :7])
+                    iter += 1
+                    # check if simulator is stopped
+                actions[0, -1] = torch.clone(gripper_action)
+                obs, _, done, info = env.step(actions)
+                prev_gripper_action = torch.clone(gripper_action)
+                if env.unwrapped.sim.is_stopped():
+                    break
+        is_success = (info["is_success"].sum() > 0).cpu().numpy()
+        with open(os.path.join(save_dir_target, 'is_success.txt'), 'wb') as f:
+            f.write(str(is_success).encode())
+        clip = ImageSequenceClip(_frames, fps=1 / env.dt)
+        clip.write_videofile(os.path.join(save_dir_target, "video.mp4"), fps=1 / env.dt)
+
 
 if __name__ == "__main__":
     # Run IK example with Manipulator

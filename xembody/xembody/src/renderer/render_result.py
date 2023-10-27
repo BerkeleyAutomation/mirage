@@ -6,7 +6,8 @@ class RenderResult:
     def __init__(self,
                  rgb: torch.Tensor, 
                  segmentation_mask: torch.Tensor, 
-                 point_cloud: o3d.geometry.PointCloud
+                 point_cloud: o3d.geometry.PointCloud,
+                 rgbd_image: torch.Tensor
                  ) -> None:
         """
         :param rgb: The RGB image of the rendered view.
@@ -16,3 +17,4 @@ class RenderResult:
         self.rgb = rgb
         self.segmentation_mask = segmentation_mask
         self.point_cloud = point_cloud
+        self.rgbd_image = rgbd_image

@@ -120,7 +120,7 @@ def main():
     teleop_interface.reset()
 
     count = 0
-    orbit_renderer = OrbitRenderer(robot_path="/World/envs/env_0/Robot", device="cuda")
+    orbit_renderer = OrbitRenderer(robot_path="/World/envs/env_0/Robot", device="cuda", use_segmentation=True)
 
     intrinsic_matrix = np.array([[528.433756, 0.0, 320.5],
                                  [0.0, 528.433756, 240.5],
@@ -128,7 +128,6 @@ def main():
     camera_translation = np.array([1.5, 1.5, 1.5])
 
     orbit_renderer.initialize(camera_translation, intrinsics=intrinsic_matrix)
-    pcd = o3d.geometry.PointCloud()
 
     # simulate environment
     while simulation_app.is_running():
@@ -143,12 +142,15 @@ def main():
 
             segmentation_mask_numpy = render_result.segmentation_mask.cpu().numpy()
             cv2.imwrite('seg.jpg', segmentation_mask_numpy)
+
+            np.save('rgbd.npy', render_result.rgbd_image.detach().cpu().numpy())
             
-            point_cloud = render_result.point_cloud.cpu().numpy()
-            pcd.points = o3d.utility.Vector3dVector(point_cloud)
-            o3d.io.write_point_cloud("point_cloud.pcd", pcd)
+            # point_cloud = render_result.point_cloud.cpu().numpy()
+            # pcd.points = o3d.utility.Vector3dVector(point_cloud)
+            # o3d.io.write_point_cloud("point_cloud.pcd", pcd)
 
             np.savetxt('joints.txt', env.robot.data.arm_dof_pos.detach().cpu().numpy())
+            np.savetxt('gripper_joints.txt', env.robot.data.tool_dof_pos.detach().cpu().numpy())
 
         # convert to torch
         delta_pose = torch.tensor(delta_pose, dtype=torch.float, device=env.device).repeat(env.num_envs, 1)

@@ -19,7 +19,9 @@ class OrbitRenderer(Renderer):
     def __init__(self, 
                  robot_path: str, 
                  pinhole_camera_config: PinholeCameraCfg = None,
-                 device: str = "cpu"
+                 device: str = "cpu",
+                 use_segmentation: bool = True,
+                 resolution: List[int] = [480, 640]
                 ):
         """
         :param robot_arm: The arm that will be rendered
@@ -33,8 +35,8 @@ class OrbitRenderer(Renderer):
         self._cam_config = pinhole_camera_config if pinhole_camera_config \
             else PinholeCameraCfg(
                 sensor_tick=0,
-                height=480,
-                width=640,
+                height=resolution[0],
+                width=resolution[1],
                 data_types=["rgb", "semantic_segmentation", "distance_to_image_plane"],
                 usd_params=PinholeCameraCfg.UsdCameraCfg(
                     focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
@@ -45,8 +47,9 @@ class OrbitRenderer(Renderer):
         self._robot_segmentation_label = None
         self._robot_prim = rep.get.prims(path_pattern=self._robot_path)
         # TODO FIX FOR FRANKA!
-        with self._robot_prim:
-            rep.modify.semantics([('class', OrbitRenderer.ROBOT_CLASS_NAME)])
+        # if use_segmentation:
+        #     with self._robot_prim:
+        #         rep.modify.semantics([('class', OrbitRenderer.ROBOT_CLASS_NAME)])
 
     def initialize(self, translation: np.array = None, rot_quat: np.array = None, intrinsics: np.array = None) -> None:
         """
@@ -93,7 +96,9 @@ class OrbitRenderer(Renderer):
             translation=self._cam.data.position,
             orientation=self._cam.data.orientation
         )
-        return RenderResult(rgb=rgb, segmentation_mask=segmentation_mask, point_cloud=point_cloud)
+        
+        rgbd = torch.concat((rgb, depth), dim=2)
+        return RenderResult(rgb=rgb, segmentation_mask=segmentation_mask, point_cloud=point_cloud, rgbd_image=rgbd)
 
     def create_point_cloud_from_segmentation_mask(
         self,
