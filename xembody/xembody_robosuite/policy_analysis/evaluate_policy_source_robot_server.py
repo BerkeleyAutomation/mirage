@@ -37,6 +37,7 @@ class Data:
     object_state = np.zeros(7)
     action = np.zeros(7)
     robot_pose = np.zeros(7)
+    rgb_image = ""#np.zeros((84, 84, 3))
     done = False
     success = False
     message = ""
@@ -97,7 +98,7 @@ class Robot:
             self.data_grp = self.data_writer.create_group("data")
             self.total_samples = 0
         
-        
+        self.prev_action = None
 
         # set seed
         if self.seed is not None:
@@ -168,7 +169,9 @@ class Robot:
         """
         If not blocking, action is EEF (delta) pose (6DOF) + gripper
         If blocking, action is EEF target state (7DOF using quarternion) + gripper
-        """    
+        """
+        if self.prev_action is None:
+            self.prev_action = action
         if not blocking:
             assert len(action) == 7, "Action should be 7DOF"
             self.env.env.robots[0].controller.use_delta = use_delta
@@ -197,7 +200,7 @@ class Robot:
                 action_target = np.zeros(7)
                 action_target[:3] = action[:3]
                 action_target[3:6] = T.quat2axisangle(action[3:7])
-                action_target[-1] = action[-1]
+                action_target[-1] = self.prev_action[-1]
                 error = np.inf
                 num_iters = 0
                 while error > tracking_error_threshold and num_iters < num_iter_max:
@@ -206,6 +209,15 @@ class Robot:
                     error = np.linalg.norm(action[:-1] - actual_pose)
                     num_iters += 1
                 print("Take {} iterations to drive robot to target pose".format(num_iters))
+                if action[-1] != self.prev_action[-1]:
+                    # print("after", self.compute_eef_pose())
+                    # self.env.env.robots[0].controller.use_delta = True
+                    # action_target = np.zeros(7)
+                    action_target[-1] = action[-1]
+                    # print("action_target", action_target)
+                    next_obs, r, done, _ = self.env.step(action_target)
+                    # self.env.env.robots[0].controller.use_delta = False
+                    # print("after", self.compute_eef_pose())
                 if error > tracking_error_threshold:
                     print("Warning: did not reach target pose, error: ", error)
                 tracking_error_history.append(error)
@@ -309,6 +321,21 @@ class SourceRobot(Robot):
             
         self.passive = passive
         
+        import torch.nn as nn
+        hidden_dims=[256, 256, 256]
+        layers = []
+        layers.append(nn.Linear(16, hidden_dims[0]))
+        layers.append(nn.ReLU())
+        for l in range(len(hidden_dims)):
+            if l == len(hidden_dims) - 1:
+                layers.append(nn.Linear(hidden_dims[l], 9))
+            else:
+                layers.append(nn.Linear(hidden_dims[l], hidden_dims[l + 1]))
+                layers.append(nn.ReLU())
+        self.forward_dynamics_model = nn.Sequential(*layers)
+        self.forward_dynamics_model.to("cuda")
+        self.forward_dynamics_model.load_state_dict(torch.load('/home/lawrence/xembody/robomimic/forward_dynamics/forward_dynamics_bc_img_300.pth'))
+        
     def rollout_robot(self, video_skip=5, return_obs=False, camera_names=None, set_object_state=False, set_robot_pose=False, tracking_error_threshold=0.003, num_iter_max=100, target_robot_delta_action=False):
         """
         Helper function to carry out rollouts. Supports on-screen rendering, off-screen rendering to a video, 
@@ -365,6 +392,9 @@ class SourceRobot(Robot):
                 variable = Data()
                 variable.object_state = self.get_object_state()
                 variable.robot_pose = self.compute_eef_pose()
+                variable.rgb_image = "source_img.npy"
+                image = self.obs['agentview_image']
+                np.save("source_img.npy", image)
                 variable.message = "Ready"
                 # Pickle the object and send it to the server
                 data_string = pickle.dumps(variable)
@@ -416,6 +446,22 @@ class SourceRobot(Robot):
             state_dict = self.env.get_state()
             obs = deepcopy(self.obs)
             action = self.policy(ob=obs) # get action from policy   
+            
+            # inpainted image
+            inpainted_image = np.load(f"inpaint_img.npy")
+            obs_copy = deepcopy(obs)
+            obs_copy["agentview_image"] = inpainted_image.transpose(2, 0, 1)
+            inpainted_img_action = self.policy(ob=obs_copy)
+            current_pose = self.compute_eef_pose()
+            transition = {
+                        'current_state': np.concatenate([current_pose, obs['robot0_gripper_qpos']]),
+                        'action': inpainted_img_action,
+                    }
+            inputs = torch.cat((torch.tensor(transition['current_state'], dtype=torch.float), torch.tensor(transition['action'], dtype=torch.float)), dim=-1).unsqueeze(0).to("cuda")
+    
+            predicted_state = self.forward_dynamics_model(inputs)
+            predicted_state = predicted_state.cpu().detach().numpy()
+    
             action, r, done, success = self.step(action, use_delta=self.control_delta, blocking=False)
             if success:
                 has_succeeded = True
@@ -433,6 +479,24 @@ class SourceRobot(Robot):
                 variable.action = action
                 variable.object_state = self.get_object_state()
                 variable.robot_pose = self.compute_eef_pose()
+                variable.rgb_image = "source_img.npy"
+                image = self.obs['agentview_image'].transpose(1, 2, 0) # convert to HWC
+                output = {"source_robot": {"rgb": image,
+                                            "joint_angles": obs['robot0_joint_pos'],
+                                            "robot_eef_pos": obs['robot0_eef_pos'],
+                                            "robot_eef_quat": obs['robot0_eef_quat'],
+                                            "robot0_gripper_qpos": obs['robot0_gripper_qpos']
+                                            },
+                          "inpainting": {"rgb": inpainted_image,
+                                         "predicted_action": inpainted_img_action,
+                                         "predicted_state": predicted_state,
+                          },
+                          "ground_truth": {
+                              "action": action,
+                              "target_state": self.compute_eef_pose()
+                          }
+                }
+                np.save("source_img.npy", output)
                 variable.done = done
                 variable.success = success
                 variable.message = "Respond with Action"

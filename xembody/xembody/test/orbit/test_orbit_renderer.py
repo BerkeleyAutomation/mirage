@@ -200,7 +200,6 @@ def main():
     # pcd = o3d.geometry.PointCloud()
     # vis.add_geometry(pcd)
 
-
     # Simulate physics
     while simulation_app.is_running():
         # If simulation is stopped, then exit.

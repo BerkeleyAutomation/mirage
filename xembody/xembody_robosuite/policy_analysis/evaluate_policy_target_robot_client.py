@@ -21,6 +21,7 @@ import socket, pickle
 from scipy.spatial.transform import Rotation
 import torch
 import time
+import cv2
 
 import robomimic
 import robomimic.utils.file_utils as FileUtils
@@ -31,13 +32,20 @@ from robomimic.envs.env_base import EnvBase
 from robomimic.algo import RolloutPolicy
 import robosuite.utils.transform_utils as T
 from robosuite.utils.mjcf_utils import array_to_string, string_to_array
+import robosuite.utils.camera_utils as camera_utils
 
 
 from evaluate_policy_source_robot_server import Data, Robot
 
+# from xembody.src.general.ros_inpaint_publisher import ROSInpaintPublisher
 
 
 class TargetRobot(Robot):
+
+    CAMERA_HEIGHT = 84
+    CAMERA_WIDTH = 84
+
+
     def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=False):
         super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path)
         
@@ -50,7 +58,32 @@ class TargetRobot(Robot):
             self.s = None
             
         self.passive = passive
-        
+        # self.ros_inpaint_publisher = ROSInpaintPublisher()
+
+
+    def image_to_pointcloud(self, depth_map, camera_name, camera_height, camera_width, segmask=None):
+        """
+        Convert depth image to point cloud
+        """
+        real_depth_map = camera_utils.get_real_depth_map(self.env.env.sim, depth_map)
+        # Camera transform matrix to project from camera coordinates to world coordinates.
+        extrinsic_matrix = camera_utils.get_camera_extrinsic_matrix(self.env.env.sim, camera_name=camera_name)
+        print('cam name: ', camera_name, ' extrinsic_matrix: ', extrinsic_matrix)
+        intrinsic_matrix = camera_utils.get_camera_intrinsic_matrix(self.env.env.sim, camera_name=camera_name, camera_height=camera_height, camera_width=camera_width)
+        print('cam name: ', camera_name, ' intrinsic_matrix: ', intrinsic_matrix)
+
+        # Convert depth image to point cloud
+        points = [] # 3D points in robot frame of shape […, 3]
+        for x in range(camera_width):
+            for y in range(camera_height):
+                if segmask is not None and segmask[y, x] == 0:
+                    continue
+                coord_cam_frame = np.array([(x-intrinsic_matrix[0, -1])/intrinsic_matrix[0, 0], (y-intrinsic_matrix[1, -1])/intrinsic_matrix[1, 1], 1]) * real_depth_map[y, x]
+                # points.append(coord_cam_frame)                
+                coord_world_frame = np.dot(extrinsic_matrix, np.concatenate((coord_cam_frame, [1])))
+                points.append(coord_world_frame)
+        return points
+
     def rollout_robot(self, video_skip=5, return_obs=False, camera_names=None, set_object_state=False, set_robot_pose=False, tracking_error_threshold=0.003, num_iter_max=100, target_robot_delta_action=False):
         
         assert isinstance(self.env, EnvBase)
@@ -73,6 +106,7 @@ class TargetRobot(Robot):
                 # Create an instance of Data() to send to client.
                 variable = Data()
                 variable.message = "Ready"
+                variable.rgb_image = ""#obs['agentview_image']
                 # Pickle the object and send it to the server
                 data_string = pickle.dumps(variable)
                 self.s.send(data_string)
@@ -84,6 +118,7 @@ class TargetRobot(Robot):
                 variable = Data()
                 variable.object_state = self.get_object_state()
                 variable.robot_pose = self.compute_eef_pose()
+                variable.rgb_image = ""#obs['agentview_image']
                 variable.message = "Ready"
                 # Pickle the object and send it to the server
                 data_string = pickle.dumps(variable)
@@ -104,13 +139,53 @@ class TargetRobot(Robot):
         
         source_finished_step = None
         has_succeeded = False
+        all_data = []
         # try:
         for step_i in range(self.rollout_horizon):
+            obs = self.env.env._get_observations()
             print("Target Step: ", step_i)
             # state_dict and obs are before taking the action
             state_dict = self.env.get_state()
             # print("State dict: ", state_dict)
-            obs = deepcopy(self.obs)
+            # obs = deepcopy(self.obs)
+            
+            joints = obs['robot0_joint_pos']
+
+            segmentation_mask = obs['agentview_segmentation_robot_only']
+            segmentation_mask = cv2.flip(segmentation_mask, 0)
+
+            rgb_img = obs['agentview_image']
+            rgb_img = cv2.flip(rgb_img, 0)
+
+            depth_normalized = obs['agentview_depth']
+            depth_normalized = cv2.flip(depth_normalized, 0)
+
+            depth_img = camera_utils.get_real_depth_map(self.env.env.sim, depth_normalized)
+
+            points = self.image_to_pointcloud(depth_normalized, "agentview", TargetRobot.CAMERA_HEIGHT, TargetRobot.CAMERA_WIDTH, segmask=None)
+            output_dict = {
+                "agentview": {
+                    "rgb": rgb_img,
+                    "seg": segmentation_mask,
+                    "real_depth_map": depth_img,
+                    "points": points,
+                    "extrinsic_matrix": camera_utils.get_camera_extrinsic_matrix(self.env.env.sim, camera_name="agentview"),
+                    "intrinsic_matrix": camera_utils.get_camera_intrinsic_matrix(self.env.env.sim, camera_name="agentview", camera_height=TargetRobot.CAMERA_HEIGHT, camera_width=TargetRobot.CAMERA_WIDTH),
+                },
+                "joint_angles": joints,
+                "robot_eef_pos": obs['robot0_eef_pos'],
+                "robot_eef_quat": obs['robot0_eef_quat'],
+                "robot0_gripper_qpos": obs['robot0_gripper_qpos']
+            }
+            import matplotlib.pyplot as plt
+            inpainted_image = plt.imread(f"/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/data/results_color_threshold_skimage5/inpaint{step_i}.png")
+            np.save(f"inpaint_img.npy", inpainted_image, allow_pickle=True)
+            # np.save(f"output.npy", output_dict, allow_pickle=True)
+
+            # self.ros_inpaint_publisher.publish_to_ros_node(rgb_img, points, segmentation_mask, joints)
+
+            # inpainted_img = self.ros_inpaint_publisher.get_inpainted_image(True)
+            # obs['agentview_image'] = inpainted_img
             
             if not self.passive:
                 # send state_dict and obs to source robot
@@ -119,10 +194,12 @@ class TargetRobot(Robot):
                 # variable.obs = obs
                 variable.object_state = self.get_object_state()
                 variable.robot_pose = self.compute_eef_pose()
+                variable.rgb_image = ""#obs['agentview_image']
                 variable.message = "Request for Action"
                 # Pickle the object and send it to the server
                 data_string = pickle.dumps(variable)
-                self.s.send(data_string)
+                if self.s is not None:
+                    self.s.send(data_string)
                 
                 # print("Request for Action")
             
@@ -134,6 +211,8 @@ class TargetRobot(Robot):
                 source_env_robot_state = pickle.loads(data)
                 assert source_env_robot_state.message == "Respond with Action", "Wrong Synchronization"
                 # print("Received actions")
+                output_dict["ground_truth_source_robot"] = np.load(source_env_robot_state.rgb_image, allow_pickle=True).item()
+                all_data.append(output_dict)
                 if source_env_robot_state.done:
                     print("Source robot is done")
                     # break
@@ -156,6 +235,8 @@ class TargetRobot(Robot):
                 action = source_env_robot_state.robot_pose # get action from the source robot
                 # append gripper action
                 action = np.concatenate([action, source_env_robot_state.action[-1:]])
+                output_dict["ground_truth_action"] = source_env_robot_state.action
+                output_dict["ground_truth_target_robot_pose"] = source_env_robot_state.robot_pose
                 action, r, done, success = self.step(action, use_delta=False, blocking=True, tracking_error_threshold=tracking_error_threshold, num_iter_max=num_iter_max)
             if success:
                 has_succeeded = True
@@ -173,6 +254,7 @@ class TargetRobot(Robot):
             variable.message = "OK"
             variable.done = done
             variable.success = has_succeeded
+            variable.rgb_image = ""#obs['agentview_image']
             if done or success:
                 print("Done: ", done, "Success: ", success)
             # Pickle the object and send it to the server
@@ -256,7 +338,7 @@ class TargetRobot(Robot):
             else:
                 traj[k] = np.array(traj[k])
 
-        
+        np.save(f"one_trajectory_source_target_with_inpainted.npy", all_data, allow_pickle=True)
         return stats, traj
     
     

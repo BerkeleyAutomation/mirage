@@ -11,11 +11,30 @@ python evaluate_policy_demo_source_robot_server.py --agent /home/lawrence/xembod
 python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 400 --seeds 0 --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_demo_playback_1.mp4 --connection --demo_path /home/lawrence/xembody/robomimic/datasets/lift/mh/demo_v141.hdf5 
 
 python evaluate_policy_demo_source_robot_server.py --n_rollouts 100 --horizon 400 --seeds 0 --connection --demo_path /home/lawrence/xembody/robomimic/datasets/lift/mh/demo_v141.hdf5 --save_stats_path /home/lawrence/xembody/xembody/xembody_robosuite/demo_data_analysis/lift_lowdim_source_sawyer_0.015_300.txt --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_demo_playback_1.mp4 
+
+# Mode 4: Target robot querying source robot policy based on inpainted images
+# 84x84 images
+python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject/20231203003603/models/model_epoch_350_Lift_success_0.98.pth --passive --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_source.mp4 --tracking_error_threshold 0.02 --num_iter_max 300 --inpaint_enabled 
+
+# 256x256 images
+python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_256/20231219024711/models/model_epoch_200_Lift_success_1.0.pth --passive --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_source.mp4 --tracking_error_threshold 0.02 --num_iter_max 300 --inpaint_enabled 
+
+
+# Mode 4 Sample Demo for 1
+python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 100 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_dataaug/20231209150046/models/model_epoch_200_Lift_success_1.0.pth --passive --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_source_diffusion.mp4 --tracking_error_threshold 0.02 --num_iter_max 300 --inpaint_enabled 
+
+
+# Mode 5: Generate paired dataset for diffusion model
+python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth  --passive --save_paired_images --save_paired_images_folder_path /home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/diffusion_model_data/success_trajs_withpose --tracking_error_threshold 0.02
+
+# Mode 6: Collect demonstration for UR5
+python evaluate_policy_demo_source_robot_server.py --agent /home/lawrence/xembody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 5 --horizon 400 --seeds 0 --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_low_dim_1.mp4 --connection --passive 
 """
 
 
 
 
+from PIL import Image
 import argparse
 import json
 import h5py
@@ -25,7 +44,8 @@ from copy import deepcopy
 import socket, pickle
 from scipy.spatial.transform import Rotation
 import torch
-
+import os
+import cv2
 import robomimic
 import robomimic.utils.file_utils as FileUtils
 import robomimic.utils.torch_utils as TorchUtils
@@ -36,7 +56,7 @@ import robomimic.utils.env_utils as EnvUtils
 from robomimic.algo import RolloutPolicy
 import robosuite.utils.transform_utils as T
 from robosuite.utils.mjcf_utils import array_to_string, string_to_array
-
+import robosuite.utils.camera_utils as camera_utils
 
 TASK_OBJECT_DICT = {"Lift": ["cube_joint0"],
                     "NutAssemblySquare": ["SquareNut_joint0", "RoundNut_joint0"],
@@ -58,7 +78,7 @@ class Data:
 tracking_error_history = []
 
 class Robot:
-    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, demo_path=None):
+    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, demo_path=None, inpaint_enabled=False, save_paired_images=False, save_paired_images_folder_path=None):
         """_summary_
 
         Args:
@@ -80,6 +100,36 @@ class Robot:
         self.use_demo = (demo_path is not None) # if True, use demo playback; if false, use source policy
         self.write_video = (video_path is not None)
         self.video_writer = imageio.get_writer(video_path, fps=20) if self.write_video else None
+        self.inpaint_writer = imageio.get_writer(os.path.join(os.path.dirname(self.video_path), "inpaint_video.mp4"), fps=20) if self.video_writer is not None else None
+
+        self.inpaint_enabled = inpaint_enabled
+        self.save_paired_images = save_paired_images
+        
+        if self.inpaint_enabled:
+            self.groundtruth_and_inpaintedprediction_path = "/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/groundtruth_source_img.npy"
+            self.inpainted_img_path = "/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/inpainted_img.npy"
+            self.inpainted_rgb_img_path = "/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/inpainted_rgb_img.jpg"
+            self.inpaint_data_for_analysis_path = "/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/inpaint_data_for_analysis.npy"
+            self.inpaint_data_for_analysis_path_temp = "/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/inpaint_data_for_analysis_temp.npy"
+            self.diffusion_model_input_path = "/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/diffusion_model_input.npy"
+            # self.inpaint_data_for_analysis_path = "/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/inpaint_ur5_offline_data.npy"
+
+        if self.save_paired_images:
+            assert save_paired_images_folder_path is not None, "Please specify save_paired_images_folder_path"
+            self.save_paired_images_folder_path = save_paired_images_folder_path
+            # create folders if it does not exist
+            if self.robot_name is None:
+                os.makedirs(os.path.join(self.save_paired_images_folder_path, "franka_rgb"), exist_ok=True)
+                os.makedirs(os.path.join(self.save_paired_images_folder_path, "franka_mask"), exist_ok=True)
+                os.makedirs(os.path.join(self.save_paired_images_folder_path, "franka_ee_pose"), exist_ok=True)
+                os.makedirs(os.path.join(self.save_paired_images_folder_path, "franka_joint_gripper_pose"), exist_ok=True)
+                os.makedirs(os.path.join(self.save_paired_images_folder_path, "franka_depth"), exist_ok=True)
+            else:
+                os.makedirs(os.path.join(self.save_paired_images_folder_path, "{}_rgb".format(self.robot_name.lower())), exist_ok=True)
+                os.makedirs(os.path.join(self.save_paired_images_folder_path, "{}_mask".format(self.robot_name.lower())), exist_ok=True)
+                os.makedirs(os.path.join(self.save_paired_images_folder_path, "{}_ee_pose".format(self.robot_name.lower())), exist_ok=True)
+                os.makedirs(os.path.join(self.save_paired_images_folder_path, "{}_joint_gripper_pose".format(self.robot_name.lower())), exist_ok=True)
+                os.makedirs(os.path.join(self.save_paired_images_folder_path, "{}_depth".format(self.robot_name.lower())), exist_ok=True)
 
         # create environment from saved checkpoint
         self.device = TorchUtils.get_torch_device(try_to_use_cuda=True)
@@ -204,7 +254,7 @@ class Robot:
             print("Starting states are not the same"
                     "Source: ", starting_pose,
                     "Target: ", target_pose)
-            breakpoint()
+            # breakpoint()
         
         # change back to delta pose
         for i in range(self.num_robots):
@@ -239,7 +289,7 @@ class Robot:
             self.obs = self.env.get_observation()
         
         
-    def step(self, action, use_delta=True, blocking=False, tracking_error_threshold=0.003, num_iter_max=100, goal_pose=None):
+    def step(self, action, use_delta=True, blocking=False, tracking_error_threshold=0.003, num_iter_max=100, goal_pose=None, name="Source Robot"):
         """
         If not blocking, action is EEF (delta) pose (6DOF) + gripper
         If blocking, action is EEF target state (7DOF using quarternion) + gripper
@@ -278,6 +328,9 @@ class Robot:
                 assert (len(action) == 8 and self.num_robots == 1) or (len(action) == 16 and self.num_robots == 2), "Action should be 8DOF"
                 for i in range(self.num_robots):
                     self.env.env.robots[i].controller.use_delta = False
+                    self.env.env.robots[i].controller.kp = np.array([150, 150, 150, 150, 150, 150]) # control gain
+                    # self.env.env.robots[i].controller.kp = np.array([500, 100, 500, 10, 10, 50]) # control gain
+                    print("Robot {} controller kp: {}".format(i, self.env.env.robots[i].controller.kp))
                 if self.num_robots == 1:
                     action_target = np.zeros(7)
                     action_target[:3] = action[:3]
@@ -304,7 +357,7 @@ class Robot:
                         error = np.linalg.norm(np.concatenate((action[:7], action[8:15])) - actual_pose)
                             
                     num_iters += 1
-                print("Source robot: Take {} iterations to drive robot to target pose".format(num_iters))
+                print("{}: Take {} iterations to drive robot to target pose".format(name, num_iters))
                 
                 if self.num_robots == 1:
                     if action[-1] != self.prev_action[-1]:
@@ -329,9 +382,10 @@ class Robot:
         return action, r, done, success
 
     
-    def run_experiments(self, seeds, rollout_num_episodes=1, video_skip=5, camera_names="agentview", dataset_obs=False, save_stats_path=None, tracking_error_threshold=0.003, num_iter_max=100, target_robot_delta_action=False):
+    def run_experiments(self, seeds, rollout_num_episodes=1, video_skip=5, camera_names="agentview", dataset_obs=False, save_stats_path=None, tracking_error_threshold=0.003, num_iter_max=100, target_robot_delta_action=False, inpaint_online_eval=False):
         """target_robot_delta_action only affects the target robot. Default is to track the absolute pose of the source robot."""
         avg_rollout_stats = dict(Seeds=[], Return=[], Horizon=[], Success_Rate=[], Num_Success=[])
+        inpaint_data_for_analysis = []
         for seed in seeds:
             print("Seed: ", seed)
             self.set_seed(seed)
@@ -341,20 +395,21 @@ class Robot:
             for i in range(rollout_num_episodes):
                 self.set_seed(seed * rollout_num_episodes +i)
                 print("Rollout {}/{}".format(i + 1, rollout_num_episodes))
-                stats, traj = self.rollout_robot(
+                stats, traj, inpaint_data_for_analysis_1traj = self.rollout_robot(
                     video_skip=video_skip,
                     return_obs=self.write_dataset,
                     camera_names=camera_names,
                     set_object_state=True,
-                    set_robot_pose=False, # no need to set it to true since the target robot will be tracking the source robot
+                    set_robot_pose=inpaint_online_eval or self.save_paired_images, # no need to set it to true since the target robot will be tracking the source robot, unless it is inpainting with online eval
                     tracking_error_threshold=tracking_error_threshold, # used only by the target robot because it is blocking
                     num_iter_max=num_iter_max, # used only by the target robot because it is blocking
                     target_robot_delta_action = target_robot_delta_action,
                     demo_index=i
                 )
                 rollout_stats.append(stats)
+                inpaint_data_for_analysis.append(inpaint_data_for_analysis_1traj)
                 
-                if self.write_dataset:
+                if stats["Success_Rate"] >= 1 and self.write_dataset: # only save successful trajs
                     # store transitions
                     ep_data_grp = self.data_grp.create_group("demo_{}".format(i))
                     ep_data_grp.create_dataset("actions", data=np.array(traj["actions"]))
@@ -370,7 +425,7 @@ class Robot:
                     if "model" in traj["initial_state_dict"]:
                         ep_data_grp.attrs["model_file"] = traj["initial_state_dict"]["model"] # model xml for this episode
                     ep_data_grp.attrs["num_samples"] = traj["actions"].shape[0] # number of transitions in this episode
-                    total_samples += traj["actions"].shape[0]
+                    self.total_samples += traj["actions"].shape[0]
 
             rollout_stats = TensorUtils.list_of_flat_dict_to_dict_of_list(rollout_stats)
             for k in rollout_stats:
@@ -397,20 +452,40 @@ class Robot:
         if self.write_video:
             self.video_writer.close()
 
+        if self.inpaint_writer:
+            self.inpaint_writer.close()
+
         if self.write_dataset:
             # global metadata
-            self.data_grp.attrs["total"] = total_samples
-            self.data_grp.attrs["env_args"] = json.dumps(self.env.serialize(), indent=4) # environment info
+            self.data_grp.attrs["total"] = self.total_samples
+            env_args_dict = self.env.serialize()
+            env_args_dict['env_kwargs']['controller_configs']['control_delta'] = target_robot_delta_action # since we are saving the dataset for the target robot
+            self.data_grp.attrs["env_args"] = json.dumps(env_args_dict, indent=4) # environment info
+            # self.data_grp.attrs["env_args"] = json.dumps(self.env.serialize(), indent=4) # environment info
             self.data_writer.close()
             print("Wrote dataset trajectories to {}".format(self.dataset_path))
+        
+        if self.inpaint_enabled:
+            if len(inpaint_data_for_analysis_1traj) != 0: # only save the target copy
+                import pickle
+                with open(self.inpaint_data_for_analysis_path, "wb") as f:
+                    pickle.dump(inpaint_data_for_analysis, f)
+                # np.save(self.inpaint_data_for_analysis_path, inpaint_data_for_analysis, allow_pickle=True)
+                print("Saved inpaint_data_for_analysis to {}".format(self.inpaint_data_for_analysis_path))
+            # clean up temporary files
+            import os
+            if os.path.isfile(self.groundtruth_and_inpaintedprediction_path):
+                os.remove(self.groundtruth_and_inpaintedprediction_path)
+            if os.path.isfile(self.inpainted_img_path):
+                os.remove(self.inpainted_img_path)
         
         if self.s is not None:
             self.s.close()
 
 
 class SourceRobot(Robot):
-    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=True, demo_path=None):
-        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path)
+    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=True, demo_path=None, inpaint_enabled=False, forward_dynamics_model_path='/home/lawrence/xembody/robomimic/forward_dynamics/forward_dynamics_bc_img_300.pth', save_paired_images=False, save_paired_images_folder_path=None):
+        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path)
         
         if connection:
             HOST = 'localhost'
@@ -426,6 +501,12 @@ class SourceRobot(Robot):
             self.conn = None
             
         self.passive = passive
+        
+        if self.inpaint_enabled:
+            # load forward dynamics model
+            from image_inpainting.forward_dynamics_model import ForwardDynamicsModel
+            self.forward_dynamics_model = ForwardDynamicsModel(model_path=forward_dynamics_model_path)
+            
         
     def rollout_robot(self, video_skip=5, return_obs=False, camera_names=None, set_object_state=False, set_robot_pose=False, tracking_error_threshold=0.003, num_iter_max=100, target_robot_delta_action=False, demo_index=0):
         """
@@ -452,6 +533,12 @@ class SourceRobot(Robot):
         assert isinstance(self.env, EnvBase)
         # assert isinstance(self.policy, RolloutPolicy)
 
+        if self.save_paired_images:            
+            os.makedirs(os.path.join(self.save_paired_images_folder_path, "franka_rgb", str(demo_index)), exist_ok=True)
+            os.makedirs(os.path.join(self.save_paired_images_folder_path, "franka_mask", str(demo_index)), exist_ok=True)
+            os.makedirs(os.path.join(self.save_paired_images_folder_path, "franka_ee_pose", str(demo_index)), exist_ok=True)
+            os.makedirs(os.path.join(self.save_paired_images_folder_path, "franka_joint_gripper_pose", str(demo_index)), exist_ok=True)
+            os.makedirs(os.path.join(self.save_paired_images_folder_path, "franka_depth", str(demo_index)), exist_ok=True)
         
         
         if self.use_demo:
@@ -511,6 +598,25 @@ class SourceRobot(Robot):
                 # print("Receiving target object state and target robot pose from target robot")
                 assert target_env_robot_state.message == "Ready", "Target robot is not ready"
         
+        # Save the ground truth so that the target robot can use it even before it does its first step
+        if self.inpaint_enabled:
+            image = self.obs['agentview_image'].transpose(1, 2, 0) # convert to HWC
+            # image = np.array(Image.fromarray((image * 255).astype(np.uint8)).resize((84, 84))).astype(np.float32) / 255.0
+            segmentation_mask = self.obs['agentview_segmentation_robot_only']
+            segmentation_mask = cv2.flip(segmentation_mask, 0)
+            output = {
+                    "ground_truth": {
+                        "rgb": image,
+                        "segmentation_mask": segmentation_mask,
+                        "low_dim": {
+                            "joint_angles": self.obs['robot0_joint_pos'],
+                            "robot_eef_pos": self.obs['robot0_eef_pos'],
+                            "robot_eef_quat": self.obs['robot0_eef_quat'],
+                            "robot0_gripper_qpos": self.obs['robot0_gripper_qpos']
+                            }
+                    }
+                }
+            np.save(self.groundtruth_and_inpaintedprediction_path, output)
         
         video_count = 0  # video frame counter
         total_reward = 0.
@@ -547,16 +653,93 @@ class SourceRobot(Robot):
                 if set_object_state:
                     self.set_object_state(set_to_target_object_state=target_env_robot_state.object_state)
                 if set_robot_pose:
-                    self.drive_robot_to_target_pose(target_env_robot_state.robot_pose)
+                    self.drive_robot_to_target_pose(target_env_robot_state.robot_pose, tracking_error_threshold=tracking_error_threshold, num_iter_max=num_iter_max)
             
             # state_dict and obs are before taking the action
             state_dict = self.env.get_state()
             obs = deepcopy(self.obs)
+            
+            if self.save_paired_images:
+                # save the rgb image and segmentation mask
+                # because we've modified `get_observation` (Line 187) of env_robosuite.py such that all rgb images are flipped and channel swapped,
+                # they are now 3, H, W and not upside down (which is what the policy wants), but the segmentation mask is still upside down and H, W, 1
+                rgb_img = obs['agentview_image']
+                rgb_img = rgb_img.transpose(1, 2, 0)
+                segmentation_mask = obs['agentview_segmentation_robot_only']
+                segmentation_mask = cv2.flip(segmentation_mask, 0)
+                depth_normalized = obs['agentview_depth']
+                depth_normalized = cv2.flip(depth_normalized, 0)
+                depth_img = camera_utils.get_real_depth_map(self.env.env.sim, depth_normalized)
+                # save the rgb image
+                cv2.imwrite(os.path.join(self.save_paired_images_folder_path, "franka_rgb", str(demo_index), "{}.jpg".format(step_i)), cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR) * 255)
+                # save the segmentation mask
+                cv2.imwrite(os.path.join(self.save_paired_images_folder_path, "franka_mask", str(demo_index), "{}.jpg".format(step_i)), segmentation_mask * 255)
+                # save the EE pose
+                with open(os.path.join(self.save_paired_images_folder_path, "franka_ee_pose", str(demo_index), "{}.txt".format(step_i)), "w") as f:
+                    f.write(str(np.concatenate([self.compute_eef_pose(), obs['robot0_gripper_qpos']])))
+                # save the joint and gripper pose
+                with open(os.path.join(self.save_paired_images_folder_path, "franka_joint_gripper_pose", str(demo_index), "{}.txt".format(step_i)), "w") as f:
+                    f.write(str(np.concatenate([obs['robot0_joint_pos'], obs['robot0_gripper_qpos']])))
+                # save the depth map
+                np.save(os.path.join(self.save_paired_images_folder_path, "franka_depth", str(demo_index), "{}.npy".format(step_i)), depth_img)
+            
+            obs_copy = deepcopy(obs)
+            # if obs_copy["agentview_image"].shape[-1] != 84:
+            #     rgb_img = obs_copy['agentview_image']
+            #     rgb_img = rgb_img.transpose(1, 2, 0)
+            #     rgb_img = np.array(Image.fromarray((rgb_img * 255).astype(np.uint8)).resize((84, 84))).astype(np.float32) / 255.0
+            #     obs_copy["agentview_image"] = rgb_img.transpose(2, 0, 1)
+            
             if self.use_demo:
                 action = actions[step_i]
             else:
-                action = self.policy(ob=obs) # get action from policy   
-            action, r, done, success = self.step(action, use_delta=self.control_delta, blocking=False)
+                action = self.policy(ob=obs_copy) # get action from policy
+                gt_action = action.copy()
+            
+            # add noise for data collection
+            # if self.save_paired_images:
+            #     # with probability 0.5, add noise to the action
+            #     if np.random.rand() < 0.5:
+            #         print(action)
+            #         # std in the translation components: 0.6, std in the rotation components: 0.5
+            #         action[:3] += np.random.normal(0, 0.6, 3)
+            #         action[3:6] += np.random.normal(0, 0.5, 3)
+            #         # for gripper, 50% of the time, flip the gripper action
+            #         if np.random.rand() < 0.5:
+            #             action[-1] = 1 - action[-1]
+                    
+            
+            if self.inpaint_enabled:
+                # ground truth
+                rgb_img = obs['agentview_image']
+                rgb_img = rgb_img.transpose(1, 2, 0)
+                cv2.imwrite("/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/groundtruth.png", cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR) * 255)
+                # cv2.imwrite("/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/groundtruth.png", cv2.cvtColor(np.array(Image.fromarray((rgb_img * 255).astype(np.uint8)).resize((84, 84))).astype(np.float32) / 255.0, cv2.COLOR_RGB2BGR) * 255)
+                # inpainted image
+                diffusion_model_input = np.load(self.diffusion_model_input_path)
+                inpainted_image = np.load(self.inpainted_img_path)
+                # if inpainted_image.shape[-1] != 84:
+                #     inpainted_image_84 = Image.fromarray((inpainted_image*255).round().astype(np.uint8)).resize((84, 84))
+                #     inpainted_image_84 = np.array(inpainted_image_84).astype(np.float32) / 255.0
+                # else:
+                #     inpainted_image_84 = inpainted_image
+                inpainted_image_84 = inpainted_image
+                obs_copy = deepcopy(obs)
+                obs_copy["agentview_image"] = inpainted_image_84.transpose(2, 0, 1)
+                inpainted_img_action = self.policy(ob=obs_copy)
+                current_pose = target_env_robot_state.robot_pose #self.compute_eef_pose()
+                transition = {
+                            'current_state': np.concatenate([current_pose, obs['robot0_gripper_qpos']]),
+                            'action': inpainted_img_action,
+                        }
+        
+                predicted_state = self.forward_dynamics_model(transition['current_state'], transition['action'])
+                # if predicted_state[2] > 0.865:
+                #     print("Adjusted")
+                #     predicted_state[2] -= 0.015 # the z coordinate is too high
+                action = inpainted_img_action.copy()
+    
+            action, r, done, success = self.step(action, use_delta=self.control_delta, blocking=False, name="Source Robot")
             if success:
                 has_succeeded = True
             next_obs = deepcopy(self.obs)
@@ -579,6 +762,33 @@ class SourceRobot(Robot):
                 variable.done = done
                 variable.success = success
                 variable.message = "Respond with Action"
+                if self.inpaint_enabled:
+                    image = self.obs['agentview_image'].transpose(1, 2, 0) # convert to HWC
+                    # image = np.array(Image.fromarray((image * 255).astype(np.uint8)).resize((84, 84))).astype(np.float32) / 255.0
+                    segmentation_mask = self.obs['agentview_segmentation_robot_only']
+                    segmentation_mask = cv2.flip(segmentation_mask, 0)
+                    output = {
+                            "inpainting": {
+                                "input": diffusion_model_input,
+                                "rgb": inpainted_image,
+                                "predicted_action": inpainted_img_action,
+                                "predicted_state": predicted_state,
+                                },
+                            "ground_truth": {
+                                "rgb": image,
+                                "segmentation_mask": segmentation_mask,
+                                "low_dim": {
+                                    "joint_angles": obs['robot0_joint_pos'],
+                                    "robot_eef_pos": obs['robot0_eef_pos'],
+                                    "robot_eef_quat": obs['robot0_eef_quat'],
+                                    "robot0_gripper_qpos": obs['robot0_gripper_qpos']
+                                    },
+                                "action": gt_action,
+                                "target_state": self.compute_eef_pose()
+                            }
+                        }
+                    np.save(self.groundtruth_and_inpaintedprediction_path, output)
+
                 # Pickle the object and send it to the server
                 data_string = pickle.dumps(variable)
                 self.conn.send(data_string)
@@ -678,7 +888,7 @@ class SourceRobot(Robot):
                 traj[k] = np.array(traj[k])
 
         
-        return stats, traj
+        return stats, traj, []
 
 
 
@@ -829,11 +1039,33 @@ if __name__ == "__main__":
         default=100,
         help="(optional) unused by the source robot. For logging purposes only",
     )
+    parser.add_argument(
+        "--inpaint_enabled",
+        action='store_true',
+        help="if True, pass inpainted images to the policy",
+    )
+    parser.add_argument(
+        "--forward_dynamics_model_path",
+        type=str,
+        default='/home/lawrence/xembody/robomimic/forward_dynamics/forward_dynamics_bc_img_300.pth',
+        help="checkpoint path of the forward dynamics model",
+    )
+    parser.add_argument(
+        "--save_paired_images",
+        action='store_true',
+        help="if True, save paired images and masks",
+    )
+    parser.add_argument(
+        "--save_paired_images_folder_path",
+        type=str,
+        default=None,
+        help="directory of the folder to save paired images and masks",
+    )    
     args = parser.parse_args()
     
     
     
 
-    source_robot = SourceRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, seed=None, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path)
-    source_robot.run_experiments(seeds=args.seeds, rollout_num_episodes=args.n_rollouts, video_skip=args.video_skip, camera_names=args.camera_names, dataset_obs=args.dataset_obs, save_stats_path=args.save_stats_path, tracking_error_threshold=args.tracking_error_threshold, num_iter_max=args.num_iter_max)
+    source_robot = SourceRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, seed=None, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, forward_dynamics_model_path=args.forward_dynamics_model_path)
+    source_robot.run_experiments(seeds=args.seeds, rollout_num_episodes=args.n_rollouts, video_skip=args.video_skip, camera_names=args.camera_names, dataset_obs=args.dataset_obs, save_stats_path=args.save_stats_path, tracking_error_threshold=args.tracking_error_threshold, num_iter_max=args.num_iter_max, inpaint_online_eval=args.inpaint_enabled)
 

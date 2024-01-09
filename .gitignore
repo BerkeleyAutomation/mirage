@@ -29,3 +29,8 @@ __pycache__
 *.npy
 *.txt
 *.log
+*.jpg
+
+# No wandb outputs or runs
+**/wandb/
+**/runs/

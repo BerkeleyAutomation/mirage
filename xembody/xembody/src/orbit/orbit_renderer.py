@@ -47,9 +47,9 @@ class OrbitRenderer(Renderer):
         self._robot_segmentation_label = None
         self._robot_prim = rep.get.prims(path_pattern=self._robot_path)
         # TODO FIX FOR FRANKA!
-        # if use_segmentation:
-        #     with self._robot_prim:
-        #         rep.modify.semantics([('class', OrbitRenderer.ROBOT_CLASS_NAME)])
+        if use_segmentation:
+            with self._robot_prim:
+                rep.modify.semantics([('class', OrbitRenderer.ROBOT_CLASS_NAME)])
 
     def initialize(self, translation: np.array = None, rot_quat: np.array = None, intrinsics: np.array = None) -> None:
         """

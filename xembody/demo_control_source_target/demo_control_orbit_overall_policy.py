@@ -4,8 +4,8 @@ import numpy as np
 
 curr_time = datetime.now()
 
-NUM_EXPERIMENTS = 100
-for i in range(38, NUM_EXPERIMENTS):
+NUM_EXPERIMENTS = 1
+for i in range(0, NUM_EXPERIMENTS):
     seed = np.random.randint(0, 100000)
     save_dir = f'/home/lawrence/xembody/xembody/orbit_collected_data_orbit/{curr_time}/{i}'
     start_robot_process = Popen(['python3', 

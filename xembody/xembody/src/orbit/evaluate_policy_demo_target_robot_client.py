@@ -5,7 +5,7 @@
 python evaluate_policy_demo_target_robot_client.py --agent /home/lawrence/xembody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 1 --horizon 400 --seed 0 --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_low_dim_2.mp4 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name Sawyer --passive --connection
 
 # Mode 2: Target robot querying the source robot for actions
-python evaluate_policy_demo_target_robot_client.py --agent /home/lawrence/xembody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 1 --horizon 400 --seed 0 --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_low_dim_2.mp4 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name Sawyer --connection
+python evaluate_policy_demo_target_robot_client.py --agent /home/lawrence/xembody/Orbit/source/standalone/workflows/rsl_rl/models/image_based_multihead_policy_40.pth --n_rollouts 1 --horizon 400 --seed 0 --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_high_dim_1.mp4 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name ur5 --connection
 
 # Mode 3: Demonstration playback
 python evaluate_policy_demo_target_robot_client.py --n_rollouts 100 --horizon 400 --seeds 0 --save_stats_path /home/lawrence/xembody/xembody/xembody_robosuite/demo_data_analysis/lift_lowdim_target_sawyer_0.015_300.txt  --connection --demo_path /home/lawrence/xembody/robomimic/datasets/lift/mh/demo_v141.hdf5 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name Sawyer --passive --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_demo_playback_2.mp4 

@@ -5,7 +5,7 @@
 python evaluate_policy_demo_source_robot_server.py --agent /home/lawrence/xembody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 1 --seeds 0 --connection --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_low_dim_1.mp4 
 
 # Mode 2: Target robot querying the source robot for actions
-python evaluate_policy_demo_source_robot_server.py --agent /home/lawrence/xembody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 1 --horizon 400 --seeds 0 --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_low_dim_1.mp4 --connection --passive 
+python evaluate_policy_demo_source_robot_server.py --agent /home/lawrence/xembody/Orbit/source/standalone/workflows/rsl_rl/models/image_based_multihead_policy_40.pth --n_rollouts 1 --horizon 400 --seeds 0 --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_high_dim_1.mp4 --connection --passive 
 """
 
 import argparse

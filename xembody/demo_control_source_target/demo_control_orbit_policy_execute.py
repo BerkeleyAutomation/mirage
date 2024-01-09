@@ -10,7 +10,8 @@ parser.add_argument("--task", type=str, default=None, help="Task to use.")
 parser.add_argument("--num_envs", type=int, default=128, help="Number of environments to spawn.")
 parser.add_argument("--data_save_dir", type=str, default=None, help="Directory to save the files in.")
 parser.add_argument("--is_replay_robot", action="store_true", help="If the flag is set, this run will be that of the replay robot.")
-parser.add_argument("--checkpoint", type=str, default="/home/lawrence/xembody/Orbit/logs/rsl_rl/lift/Sep05_07-13-12/model_700.pt", help="Checkpoint of RSL_RL Policy.")
+parser.add_argument("--checkpoint", type=str, default="/home/lawrence/xembody/xembody/xembody/test/orbit/trained_runs/model_650.pt", help="Checkpoint of RSL_RL Policy.")
+parser.add_argument("--source_act", action="store_true", help="Should use source policy for target.")
 parser.add_argument("--seed", type=int, default=0, help="Seed for the environment.")
 
 args_cli = parser.parse_args()
@@ -122,7 +123,30 @@ class ActionRecorder(gym.Wrapper):
         self._out_dict["block_pos"] = self.env.observation_manager.object_positions(self.env)
         return out
 
-class ReplayAgent(object):
+class Agent(object):
+
+    def act(self, obs):
+        raise NotImplementedError
+
+class RLAgent(Agent):
+
+    def __init__(self, model_checkpoint: str, task_name: str, env):
+        self.model_checkpoint = model_checkpoint
+
+        agent_cfg = parse_rslrl_cfg(task_name)
+        resume_path = os.path.abspath(self.model_checkpoint)
+        self.ppo_runner = OnPolicyRunner(env, agent_cfg, log_dir=None, device=agent_cfg["device"])
+        self.ppo_runner.load(resume_path)
+        
+        self.policy = self.ppo_runner.get_inference_policy(device=env.unwrapped.device)
+
+    def get_initial_gripper_pose(self):
+        return None
+    
+    def act(self, obs):
+        return self.policy(obs)
+
+class ReplayAgent(Agent):
 
     def __init__(self, source_data_file: str, env):
         self.source_data_file = source_data_file
@@ -142,10 +166,10 @@ class ReplayAgent(object):
     def get_initial_gripper_pose(self):
         return self.data[0]
     
-    def act(self):
+    def act(self, obs):
         if self.step < len(self.data):
             action = self.data[self.step]
-            action[-1] *= -1
+            # action[-1] *= -1
         else:
             return False
         self.step += 1
@@ -226,6 +250,8 @@ def make_recorded_env_for_outer(env_cfg, robot_cfg, video_folder, file_path):
     env = gym.make(args_cli.task, cfg=env_cfg, headless=args_cli.headless, viewport=True)    
     
     env = ActionRecorder(env, file_path)
+    if args_cli.source_act:
+        env = RslRlVecEnvWrapper(env)
     return env
 
 
@@ -250,31 +276,34 @@ def main():
     
     if not args_cli.is_replay_robot:
         # modify configuration
-        env_cfg.control.control_type = "default"
-        env_cfg.control.inverse_kinematics.command_type = "pose_rel"
+        # env_cfg.control.control_type = "inverse_kinematics"
+        # env_cfg.control.inverse_kinematics.command_type = "pose_abs"
         env_cfg.terminations.episode_timeout = True
         env_cfg.seed = args_cli.seed
         # create environment
         env = make_recorded_env(env_cfg, robot_cfg, save_dir_source, save_dir_source_data_name)
         env = RslRlVecEnvWrapper(env)
         obs, _ = env.reset()
-        
-        agent_cfg = parse_rslrl_cfg(args_cli.task)
-        
-        resume_path = os.path.abspath(args_cli.checkpoint)
-        ppo_runner = OnPolicyRunner(env, agent_cfg, log_dir=None, device=agent_cfg["device"])
-        ppo_runner.load(resume_path)
-        
-        policy = ppo_runner.get_inference_policy(device=env.unwrapped.device)
+
+        agent = RLAgent(args_cli.checkpoint, args_cli.task, env)        
 
         # simulate environment
         print('Relative errors:')
         done = torch.tensor([0], device=env.device)
+        
+        
         while torch.sum(done) == 0:
             # convert to torch
-            actions = policy(obs)
+            actions = agent.act(obs)
             print('Policy output', actions)
             # apply actions
+
+            # actions = torch.zeros_like(actions, device=env.device)
+            # actions[0, -1] = current_gripper_value
+            # current_gripper_value += 0.01
+
+            print("Gripper Value:", actions[0, -1])
+
             obs, x, y, done, info = env.step(actions)
             curr_ee = get_ee_poses(env)[0]
             # check if simulator is stopped
@@ -288,14 +317,20 @@ def main():
         save_dir_target = f'{args_cli.data_save_dir}/target_robot'
         save_dir_target_data_name = os.path.join(save_dir_target, 'data.pkl')
             
+        # env_cfg.control.control_type = "default"
+
         env_cfg.control.control_type = "inverse_kinematics"
         env_cfg.control.inverse_kinematics.command_type = "pose_abs"
         env_cfg.terminations.episode_timeout = False
         env_cfg.seed = args_cli.seed
         env = make_recorded_env_for_outer(env_cfg, robot_cfg, save_dir_target, save_dir_target_data_name)
-        env.reset()
+        out_values = env.reset()
+        obs = out_values
+        # done = out_values[-2]
+        # info = out_values[-1]
 
-        follower_actor = ReplayAgent(save_dir_source_data_name, env)
+        follower_actor = ReplayAgent(save_dir_source_data_name, env) if  not \
+            args_cli.source_act else RLAgent(args_cli.checkpoint, args_cli.task, env)
         start_pose = follower_actor.get_initial_gripper_pose()
         # env.robot.articulations.set_joint_positions(start_pose)
         
@@ -317,25 +352,35 @@ def main():
                 render_result = _orbit_renderer.render_current_view()
                 frame = render_result.rgb.cpu().numpy()[:, :, :3]
                 _frames.append(frame)
-                actions = follower_actor.act()
+                actions = follower_actor.act(obs)
                 if actions is False:
                     break
-                gripper_action = torch.clone(actions[0, -1])
-                if prev_gripper_action is None:
-                    prev_gripper_action = torch.clone(gripper_action)
-                actions[0, -1] = torch.clone(prev_gripper_action)
+                if not args_cli.source_act:
+                    print("Input gripper action:", actions[0, -1])
+                    print("Output gripper action:", -(actions[0, -1] - 0.04) * 5 - 0.2)
+                    gripper_action = torch.clone(-(actions[0, -1] - 0.04) * 5 - 0.2)
+                    if prev_gripper_action is None:
+                        prev_gripper_action = torch.clone(gripper_action)
+                    actions[0, -1] = torch.clone(prev_gripper_action)
+
                 translation_error = torch.Tensor([10000000000]).to(env.device)
                 # apply actions
                 while translation_error.cpu().numpy() > 0.05 and iter < MAX_ITERS:
-                    obs, _, done, info = env.step(actions)
+                    # import pdb; pdb.set_trace()
+                    out_values = env.step(actions)
+                    obs = out_values[0]
+                    done = out_values[-2]
+                    info = out_values[-1]
+                    
                     ee_pose = get_ee_poses(env)[0]
                     translation_error = torch.linalg.norm(actions[0, :7] - ee_pose[:7])
-                    print_pose_errors(get_ee_poses(env)[0], actions[0, :7])
+                    # print_pose_errors(get_ee_poses(env)[0], actions[0, :7])
                     iter += 1
-                    # check if simulator is stopped
-                actions[0, -1] = torch.clone(gripper_action)
-                obs, _, done, info = env.step(actions)
-                prev_gripper_action = torch.clone(gripper_action)
+                # check if simulator is stopped
+                if not args_cli.source_act:
+                    actions[0, -1] = torch.clone(gripper_action)
+                    obs, _, done, info = env.step(actions)
+                    prev_gripper_action = torch.clone(gripper_action)
                 if env.unwrapped.sim.is_stopped():
                     break
         is_success = (info["is_success"].sum() > 0).cpu().numpy()
