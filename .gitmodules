@@ -10,3 +10,6 @@
 [submodule "ARM"]
 	path = ARM
 	url = git@github.com:KDharmarajanDev/ARM.git
+[submodule "mimicgen_environments"]
+	path = mimicgen_environments
+	url = git@github.com:NVlabs/mimicgen_environments.git
