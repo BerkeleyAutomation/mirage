@@ -1,5 +1,6 @@
 import numpy as np
-import threading
+import threading    
+from typing import Any
 
 class XEmbodyPublisher:
     """
@@ -12,13 +13,10 @@ class XEmbodyPublisher:
         """
         self._blocking_cond_variable = threading.Condition()
     
-    def publish_to_ros_node(self, rgb_image: np.array, depth_map: np.array, segmentation_mask: np.array, joint_angles: np.array):
+    def publish_to_ros_node(self, data: Any) -> None:
         """
         Publishes the RGB image, segmentation mask, and joint angles to the ROS2 node.
-        :param rgb_image: The RGBD image 4 channel numpy.
-        :param depth_map: The depth map.
-        :param segmentation_mask: The segmentation mask 1 channel numpy.
-        :param joint_angles: The joint angles 1D numpy.
+        :param data: The data to be published.        
         """
         pass
     

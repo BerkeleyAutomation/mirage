@@ -1,36 +1,44 @@
 import rclpy
 from sensor_msgs.msg import Image, PointCloud2
-from input_filenames_msg.msg import InputFilesRobosuiteData
 from cv_bridge import CvBridge
 from xembody.src.general.xembody_publisher import XEmbodyPublisher
 from sensor_msgs.msg import PointCloud2, PointField
 import cv2
 import numpy as np
 import threading
+import message_filters
 
 class ROSInpaintPublisher(XEmbodyPublisher):
     """
-    Handles the ROS2 communication for sending an RGBD image, segmentation mask, and joint angles
-    to a node that performs inpainting on a target robot.
+    Handles the ROS2 communication for receiving inpainted images from a target robot. 
+    Publishing data is left to sim or real subclasses.
     """
 
-    def __init__(self):
+    def __init__(self, use_diffusion: bool = False):
         """
         Initializes the ROS2 node.
         """
         super().__init__()
         rclpy.init(args=None)
         self.node = rclpy.create_node('ros_inpaint_publisher')
+        
+        self._use_diffusion = use_diffusion
 
         self.spin_thread = threading.Thread(target=rclpy.spin, args=(self.node,))
         self.spin_thread.start()
 
-        self._publisher = self.node.create_publisher(
-            InputFilesRobosuiteData, 'input_files_data', 1)
         self._pcd_publisher = self.node.create_publisher(
             PointCloud2, 'point_cloud_output', 1)
-        self._subscriber = self.node.create_subscription(
-            Image, 'inpainted_image', self._inpaint_image_callback, 1)
+        
+        self._analytic_inpaint_subscriber = message_filters.Subscriber(self.node, Image, 'inpainted_image')
+        self._mask_subscriber = message_filters.Subscriber(self.node, Image, 'full_mask_image')
+        self._time_sync = message_filters.ApproximateTimeSynchronizer(
+            [self._analytic_inpaint_subscriber, self._mask_subscriber], 
+            10, 
+            0.1
+        )
+        self._time_sync.registerCallback(self._inpaint_image_callback)
+        
         self._cv_bridge = CvBridge()
         self._cv_image = None
         self._internal_lock = threading.Lock()
@@ -58,35 +66,6 @@ class ROSInpaintPublisher(XEmbodyPublisher):
         msg.data = points.astype(np.float32).tobytes()
         return msg
 
-
-    def publish_to_ros_node(self, rgb_image: np.array, depth_map: np.array, segmentation_mask: np.array, joint_angles: np.array):
-        """
-        Publishes the RGB image, segmentation mask, and joint angles to the ROS2 node.
-        :param rgb_image: The RGBD image 4 channel numpy.
-        :param depth_map: The depth map.
-        :param segmentation_mask: The segmentation mask 1 channel numpy.
-        :param joint_angles: The joint angles 1D numpy.
-        """
-        msg = InputFilesRobosuiteData()
-
-        # if rgb_image.dtype == np.float64 or rgb_image.dtype == np.float32:
-        #     rgb_image = (rgb_image * 255).astype(np.uint8)
-
-        # msg.rgb = rgb_image.flatten().tolist()
-
-        # msg.depth_map = np.array(depth_map).flatten().tolist()
-
-        # msg.segmentation = self._cv_bridge.cv2_to_imgmsg(segmentation_mask)
-        msg.rgb = rgb_image.flatten().tolist()
-
-        msg.depth_map = depth_map.flatten().tolist()
-
-        if segmentation_mask.max() <= 1:
-            segmentation_mask = (segmentation_mask * 255).astype(np.uint8)
-        msg.segmentation = self._cv_bridge.cv2_to_imgmsg(segmentation_mask)
-        msg.joints = joint_angles.tolist()
-        self._publisher.publish(msg)
-
     def _get_inpainted_image_impl(self) -> np.array:
         """
         The implementation of getting an inpainted image.
@@ -104,13 +83,21 @@ class ROSInpaintPublisher(XEmbodyPublisher):
         """
         return self._cv_image is not None
 
-    def _inpaint_image_callback(self, msg):
+    def _inpaint_image_callback(self, inpaint_msg, mask_msg):
         """
         Callback function for the inpainted image.
         :param msg: The ROS2 message.
         """
-        self.node.get_logger().info('Received inpainted image')
+        self.node.get_logger().info('Received inpainted & mask images')
         with self._internal_lock:
-            self._cv_image = self._cv_bridge.imgmsg_to_cv2(msg)
+            inpainted_msg = self._cv_bridge.imgmsg_to_cv2(inpaint_msg)\
+            mask_msg = self._cv_bridge.imgmsg_to_cv2(mask_msg)
+            self._cv_image = inpainted_msg
+            
+            if self._use_diffusion:
+                # TODO: add the diffusion code here
+                # self._cv_image = diffusion output
+                pass
+            
             with self._blocking_cond_variable:
                 self._blocking_cond_variable.notify()
