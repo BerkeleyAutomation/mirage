@@ -17,6 +17,8 @@ python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 
 # 256x256 images
 python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_256/20231219024711/models/model_epoch_200_Lift_success_1.0.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_target.mp4 --inpaint_enabled --delta_action --use_diffusion --diffusion_input masked/analytic/target_robot --use_ros --offline_eval
 
+# Forward dynamics evaluation
+python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject/20231203003603/models/model_epoch_350_Lift_success_0.98.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_target.mp4 --inpaint_enabled
 
 # Mode 4 Sample Demo for 1
 python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 100 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_dataaug/20231209150046/models/model_epoch_200_Lift_success_1.0.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_target_diffusion.mp4 --inpaint_enabled 
@@ -36,6 +38,7 @@ import argparse
 import json
 import h5py
 import imageio
+import struct
 import numpy as np
 from copy import deepcopy
 import socket, pickle
@@ -82,8 +85,8 @@ class TargetRobot(Robot):
         if self.inpaint_enabled:
             if not self.offline_eval:
                 if self.use_ros:
-                    from xembody.src.general.ros_inpaint_publisher import ROSInpaintPublisher
-                    self.ros_inpaint_publisher = ROSInpaintPublisher()
+                    from xembody.src.general.ros_inpaint_publisher_sim import ROSInpaintPublisherSim
+                    self.ros_inpaint_publisher = ROSInpaintPublisherSim()
                 if self.use_diffusion:
                     from controlnet import ControlNet
                     self.controlnet = ControlNet()
@@ -95,8 +98,7 @@ class TargetRobot(Robot):
                         if self.use_ros:
                             print("Use the analytic Franka masks")
                         else:
-                            print("NOT USING ROS! Will use the groundtruth Franka masks instead")
-                        
+                            print("NOT USING ROS! Will use the groundtruth Franka masks instead")                        
     
     def image_to_pointcloud(self, depth_map, camera_name, camera_height=84, camera_width=84, segmask=None):
         """
@@ -136,7 +138,9 @@ class TargetRobot(Robot):
             # the target robot needs to be first initialized to the source object state and source robot pose
             # receive source object state and source robot pose from source robot
             if self.s is not None:
-                data = self.s.recv(4096)
+                pickled_message_size = self.s.recv(4)
+                message_size = struct.unpack("!I", pickled_message_size)[0]
+                data = self.s.recv(message_size)
                 source_env_robot_state = pickle.loads(data)
                 print("Receiving source object state and source robot pose from source robot")
                 assert source_env_robot_state.message == "Ready"
@@ -149,6 +153,8 @@ class TargetRobot(Robot):
                 variable.message = "Ready"
                 # Pickle the object and send it to the server
                 data_string = pickle.dumps(variable)
+                message_length = struct.pack("!I", len(data_string))
+                self.s.send(message_length)
                 self.s.send(data_string)
         else:
             # the target robot is ready to execute the policy
@@ -224,7 +230,6 @@ class TargetRobot(Robot):
                     # they are now 3, H, W and not upside down (which is what the policy wants), but the segmentation mask is still upside down and H, W, 1
                     rgb_img = obs['agentview_image']
                     rgb_img = rgb_img.transpose(1, 2, 0)
-                    
                     segmentation_mask = obs['agentview_segmentation_robot_only']
                     segmentation_mask = cv2.flip(segmentation_mask, 0) # need this (flip vertically) unless we change macros.IMAGE_CONVENTION = "opencv" from "opengl"
 
@@ -257,15 +262,19 @@ class TargetRobot(Robot):
                     # cv2.imwrite("/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/rgb.png", cv2.cvtColor(np.array(Image.fromarray(ros_rgb_img).resize((84, 84))).astype(np.float32) / 255.0, cv2.COLOR_RGB2BGR) * 255)
                     
                     if not self.offline_eval:
-                        # import pdb; pdb.set_trace()
+                        inpainted_image = np.zeros((256, 256, 3), dtype=np.uint8)                        
                         sent_joint_angles = np.concatenate([joint_angles, obs['robot0_gripper_qpos'][-1:]])
-                        print(rgb_img.shape)
                         ros_rgb_img = (rgb_img * 255).astype(np.uint8)
                         ros_depth_img = depth_img.astype(np.float64)
                         ros_segmentation_mask = np.repeat(segmentation_mask[:,:,np.newaxis],3,axis=2).astype(np.uint8)
                         if self.use_ros:
                             print("Publishing")
-                            self.ros_inpaint_publisher.publish_to_ros_node(ros_rgb_img, ros_depth_img, ros_segmentation_mask, sent_joint_angles)
+                            from xembody.src.general.ros_inpaint_publisher_sim import ROSInpaintSimData
+                            eef_pose = self.compute_eef_pose()
+                            eef_pose_matrix = T.pose2mat((eef_pose[:3], eef_pose[3:]))
+                            data = ROSInpaintSimData(ros_rgb_img, ros_depth_img, ros_segmentation_mask, eef_pose_matrix, obs['robot0_gripper_qpos'][-1:])
+                            print("Joints including gripper", sent_joint_angles)
+                            self.ros_inpaint_publisher.publish_to_ros_node(data)
                             inpainted_image = self.ros_inpaint_publisher.get_inpainted_image(True)
                             inpainted_image = inpainted_image.astype(np.float32) / 255.0
                             print("Received inpainted image")
@@ -297,7 +306,8 @@ class TargetRobot(Robot):
                         # inpainted_image = plt.imread(f"/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/data/diffusion/inpainted_image_{step_i}.png")
                         inpainted_image = plt.imread(f"/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/data/results_color_threshold_skimage4/inpaint0.png")
                     np.save(self.inpainted_img_path, inpainted_image, allow_pickle=True)
-                    np.save(self.diffusion_model_input_path, diffusion_input, allow_pickle=True)
+                    if self.use_diffusion:
+                        np.save(self.diffusion_model_input_path, diffusion_input, allow_pickle=True)
                     cv2.imwrite(self.inpainted_rgb_img_path, cv2.cvtColor(inpainted_image, cv2.COLOR_RGB2BGR) * 255)
                     if self.inpaint_writer is not None:
                         self.inpaint_writer.append_data((inpainted_image * 255).astype(np.uint8))
@@ -305,17 +315,18 @@ class TargetRobot(Robot):
 
                 # Pickle the object and send it to the server
                 data_string = pickle.dumps(variable)
-                # time.sleep(0.1)
+                message_length = struct.pack("!I", len(data_string))
+                self.s.send(message_length)
                 self.s.send(data_string)
-                time.sleep(0.1) # if we don't sleep, the target robot will not recieve the message
-                
-                # print("Request for Action")
+                # time.sleep(0.1) # if we don't sleep, the target robot will not recieve the message
             
                 
             # receive target object state and target robot pose from target robot
             if self.s is not None:
                 # breakpoint()
-                data = self.s.recv(4096)
+                pickled_message_size = self.s.recv(4)
+                message_size = struct.unpack("!I", pickled_message_size)[0]
+                data = self.s.recv(message_size)
                 source_env_robot_state = pickle.loads(data)
                 assert source_env_robot_state.message == "Respond with Action", "Wrong Synchronization"
                 # print("Received actions")
@@ -357,14 +368,19 @@ class TargetRobot(Robot):
                     if self.inpaint_enabled:
                         inpaint_action = timestep_info_dict["source_robot"]["inpainting"]["predicted_state"][:7] # only get position and quarternion of the target state and not the gripper part
                         inpaint_action = np.concatenate([inpaint_action, timestep_info_dict["source_robot"]["inpainting"]["predicted_action"][-1:]])
+    
+                        predicted_state_with_gt_action = np.concatenate([timestep_info_dict["source_robot"]["inpainting"]["predicted_state_from_gt"][:7], action[-1:]])
+                        
                         timestep_info_dict["ground_truth_action"] = action
                         timestep_info_dict["inpaint_action"] = inpaint_action
                         # online eval uses the inpaint action
                         if not self.offline_eval:
                             print("Inpaint action: ", inpaint_action)
                             print("Ground truth action: ", action)
-                            print("Use inpaint action")
-                            action = inpaint_action
+                            # action = inpaint_action
+                            print("Use predicted_state_with_gt_action action")
+                            # print("Predicted from gt action: ", predicted_state_with_gt_action)
+                            action = predicted_state_with_gt_action
                 else:
                     action_0, action_1 = source_env_robot_state.robot_pose[:7], source_env_robot_state.robot_pose[7:]
                     # append gripper action
@@ -376,6 +392,7 @@ class TargetRobot(Robot):
             
             if self.inpaint_enabled:
                 trajectory_timestep_infos.append(timestep_info_dict)
+
                 # if the file does not exist:
                 if not os.path.exists(self.inpaint_data_for_analysis_path_temp):
                     # create the file and save the trajectory_timestep_infos
@@ -406,6 +423,8 @@ class TargetRobot(Robot):
                 print("Done: ", done, "Success: ", success)
             # Pickle the object and send it to the server
             data_string = pickle.dumps(variable)
+            message_length = struct.pack("!I", len(data_string))
+            self.s.send(message_length)
             self.s.send(data_string)
             
             

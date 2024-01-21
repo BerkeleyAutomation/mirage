@@ -19,6 +19,9 @@ python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 400 
 # 256x256 images
 python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_256/20231219024711/models/model_epoch_200_Lift_success_1.0.pth --passive --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_source.mp4 --tracking_error_threshold 0.02 --num_iter_max 300 --inpaint_enabled 
 
+# Forward dynamics evaluation
+# Linear Regression
+python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject/20231203003603/models/model_epoch_350_Lift_success_0.98.pth --passive --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_source.mp4 --tracking_error_threshold 0.02 --num_iter_max 300 --inpaint_enabled --forward_dynamics_model_path /home/lawrence/xembody/robomimic/forward_dynamics_linear_reg/forward_dynamics_model.pkl
 
 # Mode 4 Sample Demo for 1
 python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 100 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_dataaug/20231209150046/models/model_epoch_200_Lift_success_1.0.pth --passive --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_source_diffusion.mp4 --tracking_error_threshold 0.02 --num_iter_max 300 --inpaint_enabled 
@@ -46,6 +49,7 @@ from scipy.spatial.transform import Rotation
 import torch
 import os
 import cv2
+import struct
 import robomimic
 import robomimic.utils.file_utils as FileUtils
 import robomimic.utils.torch_utils as TorchUtils
@@ -285,7 +289,6 @@ class Robot:
                 self.env.env.sim.data.set_joint_qpos(obj_name, set_to_target_object_state[obj_name])
             # self.env.env.sim.data.set_joint_qpos("cube_joint0", set_to_target_object_state)
                 self.env.env.sim.forward()
-            
             self.obs = self.env.get_observation()
         
         
@@ -329,7 +332,7 @@ class Robot:
                 for i in range(self.num_robots):
                     self.env.env.robots[i].controller.use_delta = False
                     self.env.env.robots[i].controller.kp = np.array([150, 150, 150, 150, 150, 150]) # control gain
-                    # self.env.env.robots[i].controller.kp = np.array([500, 100, 500, 10, 10, 50]) # control gain
+                    # self.env.env.robots[i].controller.kp = np.array([100, 100, 500, 10, 10, 50]) # control gain
                     print("Robot {} controller kp: {}".format(i, self.env.env.robots[i].controller.kp))
                 if self.num_robots == 1:
                     action_target = np.zeros(7)
@@ -394,6 +397,10 @@ class Robot:
                 rollout_num_episodes = min(rollout_num_episodes, len(self.demos))
             for i in range(rollout_num_episodes):
                 self.set_seed(seed * rollout_num_episodes +i)
+                if i==0:
+                    import os
+                    if (self.inpaint_enabled and os.path.exists(self.inpaint_data_for_analysis_path_temp)):
+                        os.remove(self.inpaint_data_for_analysis_path_temp) # remove that file
                 print("Rollout {}/{}".format(i + 1, rollout_num_episodes))
                 stats, traj, inpaint_data_for_analysis_1traj = self.rollout_robot(
                     video_skip=video_skip,
@@ -591,9 +598,13 @@ class SourceRobot(Robot):
                 variable.message = "Ready"
                 # Pickle the object and send it to the server
                 data_string = pickle.dumps(variable)
+                message_length = struct.pack("!I", len(data_string))
+                self.conn.send(message_length)
                 self.conn.send(data_string)
                 # confirm that the target robot is ready
-                data = self.conn.recv(4096)
+                pickled_message_size = self.conn.recv(4)
+                message_size = struct.unpack("!I", pickled_message_size)[0]
+                data = self.conn.recv(message_size)
                 target_env_robot_state = pickle.loads(data)
                 # print("Receiving target object state and target robot pose from target robot")
                 assert target_env_robot_state.message == "Ready", "Target robot is not ready"
@@ -631,15 +642,13 @@ class SourceRobot(Robot):
         # try:
         for step_i in range(self.rollout_horizon):
             print("Source Step: ", step_i)
-            
             # receive target object state and target robot pose from target robot
             if self.passive:
                 if self.conn is not None:
-                    # breakpoint()
-                    import time
-                    # time.sleep(0.1)
-                    data = self.conn.recv(4096)
-                    # print("Receiving target object state and target robot pose from target robot")
+                    pickled_message_size = self.conn.recv(4)
+                    message_size = struct.unpack("!I", pickled_message_size)[0]
+
+                    data = self.conn.recv(message_size)
                     target_env_robot_state = pickle.loads(data)
                     assert target_env_robot_state.message == "Request for Action", "Wrong synchronization"
                     # print("Receiving target object state and target robot pose from target robot")
@@ -731,13 +740,15 @@ class SourceRobot(Robot):
                 transition = {
                             'current_state': np.concatenate([current_pose, obs['robot0_gripper_qpos']]),
                             'action': inpainted_img_action,
+                            'gt_action': gt_action
                         }
-        
                 predicted_state = self.forward_dynamics_model(transition['current_state'], transition['action'])
+                predicted_state_from_gt = self.forward_dynamics_model(transition['current_state'], transition['gt_action'])
                 # if predicted_state[2] > 0.865:
                 #     print("Adjusted")
                 #     predicted_state[2] -= 0.015 # the z coordinate is too high
-                action = inpainted_img_action.copy()
+                # action = inpainted_img_action.copy()
+                action = gt_action.copy()
     
             action, r, done, success = self.step(action, use_delta=self.control_delta, blocking=False, name="Source Robot")
             if success:
@@ -773,6 +784,7 @@ class SourceRobot(Robot):
                                 "rgb": inpainted_image,
                                 "predicted_action": inpainted_img_action,
                                 "predicted_state": predicted_state,
+                                "predicted_state_from_gt": predicted_state_from_gt,
                                 },
                             "ground_truth": {
                                 "rgb": image,
@@ -791,6 +803,8 @@ class SourceRobot(Robot):
 
                 # Pickle the object and send it to the server
                 data_string = pickle.dumps(variable)
+                message_length = struct.pack("!I", len(data_string))
+                self.conn.send(message_length)
                 self.conn.send(data_string)
             
             # visualization
@@ -821,7 +835,10 @@ class SourceRobot(Robot):
             
             # confirm that the target robot is ready for the next iteration
             if self.conn is not None:
-                data = self.conn.recv(4096)
+                pickled_message_size = self.conn.recv(4)
+                message_size = struct.unpack("!I", pickled_message_size)[0]
+                data = self.conn.recv(message_size)
+
                 target_env_robot_state = pickle.loads(data)
                 assert target_env_robot_state.message == "OK", "Wrong synchronization"
                 if target_env_robot_state.success or target_finished_step is not None:
