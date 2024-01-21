@@ -85,7 +85,7 @@ class Data:
 tracking_error_history = []
 
 class Robot:
-    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, demo_path=None, inpaint_enabled=False, save_paired_images=False, save_paired_images_folder_path=None, device=None):
+    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, demo_path=None, inpaint_enabled=False, save_paired_images=False, save_paired_images_folder_path=None, device=None, save_failed_demos=False):
         """_summary_
 
         Args:
@@ -108,6 +108,7 @@ class Robot:
         self.write_video = (video_path is not None)
         self.video_writer = imageio.get_writer(video_path, fps=20) if self.write_video else None
         self.inpaint_writer = imageio.get_writer(os.path.join(os.path.dirname(self.video_path), "inpaint_video.mp4"), fps=20) if self.video_writer is not None else None
+        self.save_failed_demos = save_failed_demos
 
         self.inpaint_enabled = inpaint_enabled
         self.save_paired_images = save_paired_images
@@ -416,7 +417,7 @@ class Robot:
                 rollout_stats.append(stats)
                 inpaint_data_for_analysis.append(inpaint_data_for_analysis_1traj)
                 
-                if stats["Success_Rate"] >= 1 and self.write_dataset: # only save successful trajs
+                if (not self.save_failed_demos and stats["Success_Rate"] >= 1) and self.write_dataset: # only save successful trajs
                     # store transitions
                     ep_data_grp = self.data_grp.create_group("demo_{}".format(i))
                     ep_data_grp.create_dataset("actions", data=np.array(traj["actions"]))
@@ -491,8 +492,8 @@ class Robot:
 
 
 class SourceRobot(Robot):
-    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=True, demo_path=None, inpaint_enabled=False, forward_dynamics_model_path='/home/lawrence/xembody/robomimic/forward_dynamics/forward_dynamics_bc_img_300.pth', save_paired_images=False, save_paired_images_folder_path=None, device=None):
-        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path, device=device)
+    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=True, demo_path=None, inpaint_enabled=False, forward_dynamics_model_path='/home/lawrence/xembody/robomimic/forward_dynamics/forward_dynamics_bc_img_300.pth', save_paired_images=False, save_paired_images_folder_path=None, device=None, save_failed_demos=False):
+        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path, device=device, save_failed_demos=save_failed_demos)
         
         if connection:
             HOST = 'localhost'
@@ -1074,9 +1075,14 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help="directory of the folder to save paired images and masks",
-    )    
+    )
+    parser.add_argument(
+        "--save_failed_demos",
+        action='store_true',
+        help="Set this to true to also save demos that failed",
+    )
     args = parser.parse_args()
 
-    source_robot = SourceRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, seed=None, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, forward_dynamics_model_path=args.forward_dynamics_model_path, device=args.device)
+    source_robot = SourceRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, seed=None, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, forward_dynamics_model_path=args.forward_dynamics_model_path, device=args.device, save_failed_demos=args.save_failed_demos)
     source_robot.run_experiments(seeds=args.seeds, rollout_num_episodes=args.n_rollouts, video_skip=args.video_skip, camera_names=args.camera_names, dataset_obs=args.dataset_obs, save_stats_path=args.save_stats_path, tracking_error_threshold=args.tracking_error_threshold, num_iter_max=args.num_iter_max, inpaint_online_eval=args.inpaint_enabled)
 

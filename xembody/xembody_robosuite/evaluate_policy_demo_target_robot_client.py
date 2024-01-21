@@ -61,8 +61,8 @@ from evaluate_policy_demo_source_robot_server import Data, Robot
 
 
 class TargetRobot(Robot):
-    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=False, demo_path=None, inpaint_enabled=False, offline_eval=False, save_paired_images=False, save_paired_images_folder_path=None, use_diffusion=False, use_ros=False, diffusion_input=None, device=None):
-        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path, device=device)
+    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=False, demo_path=None, inpaint_enabled=False, offline_eval=False, save_paired_images=False, save_paired_images_folder_path=None, use_diffusion=False, use_ros=False, diffusion_input=None, device=None, save_failed_demos=False):
+        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path, device=device, save_failed_demos=save_failed_demos)
         
         if connection:
             HOST = 'localhost'
@@ -703,11 +703,16 @@ if __name__ == "__main__":
         default=None,
         help="One of the following: [analytic, masked, target_robot]",
     )
+    parser.add_argument(
+        "--save_failed_demos",
+        action='store_true',
+        help="Set this to true to also save demos that failed",
+    )
     args = parser.parse_args()
     
     
    
     time.sleep(4) # wait for the server to start
-    target_robot = TargetRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, offline_eval=args.offline_eval, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, use_diffusion=args.use_diffusion, use_ros=args.use_ros, diffusion_input=args.diffusion_input, device=args.device)
+    target_robot = TargetRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, offline_eval=args.offline_eval, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, use_diffusion=args.use_diffusion, use_ros=args.use_ros, diffusion_input=args.diffusion_input, device=args.device, save_failed_demos=args.save_failed_demos)
     target_robot.run_experiments(seeds=args.seeds, rollout_num_episodes=args.n_rollouts, video_skip=args.video_skip, camera_names=args.camera_names, dataset_obs=args.dataset_obs, save_stats_path=args.save_stats_path, tracking_error_threshold=args.tracking_error_threshold, num_iter_max=args.num_iter_max, target_robot_delta_action=args.delta_action, inpaint_online_eval=not target_robot.offline_eval)
 
