@@ -66,7 +66,14 @@ TASK_OBJECT_DICT = {"Lift": ["cube_joint0"],
                     "NutAssemblySquare": ["SquareNut_joint0", "RoundNut_joint0"],
                     "PickPlaceCan": ["Milk_joint0", "Bread_joint0", "Cereal_joint0", "Can_joint0"],
                     "ToolHang": ["stand_joint0", "frame_joint0", "tool_joint0"],
-                    "TwoArmTransport": ['payload_joint0', 'trash_joint0', 'transport_start_bin_joint0', 'transport_target_bin_joint0', 'transport_trash_bin_joint0', 'transport_start_bin_lid_joint0']}
+                    "TwoArmTransport": ['payload_joint0', 'trash_joint0', 'transport_start_bin_joint0', 'transport_target_bin_joint0', 'transport_trash_bin_joint0', 'transport_start_bin_lid_joint0'],
+                    "StackThree_D0": ["cubeA_joint0", "cubeB_joint0", "cubeC_joint0"],
+                    "Stack_D0": ["cubeA_joint0", "cubeB_joint0"],
+                    "Threading_D0": ["needle_obj_joint0"],
+                    "ThreePieceAssembly_D0": ["piece_1_joint0", "piece_2_joint0"],
+                    "Square_D0": ["SquareNut_joint0"],
+                    "Coffee_D0": ["coffee_pod_joint0", "coffee_machine_joint0", "coffee_machine_lid_main_joint0"]
+                    }
 
 
 
@@ -82,7 +89,7 @@ class Data:
 tracking_error_history = []
 
 class Robot:
-    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, demo_path=None, inpaint_enabled=False, save_paired_images=False, save_paired_images_folder_path=None):
+    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, demo_path=None, inpaint_enabled=False, save_paired_images=False, save_paired_images_folder_path=None, device=None):
         """_summary_
 
         Args:
@@ -136,7 +143,7 @@ class Robot:
                 os.makedirs(os.path.join(self.save_paired_images_folder_path, "{}_depth".format(self.robot_name.lower())), exist_ok=True)
 
         # create environment from saved checkpoint
-        self.device = TorchUtils.get_torch_device(try_to_use_cuda=True)
+        self.device = TorchUtils.get_torch_device(try_to_use_cuda=True) if device is None else device
         # breakpoint()
         if self.use_demo:
             env_meta = FileUtils.get_env_metadata_from_dataset(dataset_path=self.hdf5_path)
@@ -491,8 +498,8 @@ class Robot:
 
 
 class SourceRobot(Robot):
-    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=True, demo_path=None, inpaint_enabled=False, forward_dynamics_model_path='/home/lawrence/xembody/robomimic/forward_dynamics/forward_dynamics_bc_img_300.pth', save_paired_images=False, save_paired_images_folder_path=None):
-        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path)
+    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=True, demo_path=None, inpaint_enabled=False, forward_dynamics_model_path='/home/lawrence/xembody/robomimic/forward_dynamics/forward_dynamics_bc_img_300.pth', save_paired_images=False, save_paired_images_folder_path=None, device=None):
+        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path, device=device)
         
         if connection:
             HOST = 'localhost'
@@ -923,6 +930,13 @@ if __name__ == "__main__":
         help="(optional) path to saved checkpoint pth file",
     )
 
+    parser.add_argument(
+        "--device",
+        type=str,
+        default=None,
+        help="(optional) set device for execution",
+    )
+
     # Path to demo file
     parser.add_argument(
         "--demo_path",
@@ -1079,10 +1093,7 @@ if __name__ == "__main__":
         help="directory of the folder to save paired images and masks",
     )    
     args = parser.parse_args()
-    
-    
-    
 
-    source_robot = SourceRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, seed=None, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, forward_dynamics_model_path=args.forward_dynamics_model_path)
+    source_robot = SourceRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, seed=None, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, forward_dynamics_model_path=args.forward_dynamics_model_path, device=args.device)
     source_robot.run_experiments(seeds=args.seeds, rollout_num_episodes=args.n_rollouts, video_skip=args.video_skip, camera_names=args.camera_names, dataset_obs=args.dataset_obs, save_stats_path=args.save_stats_path, tracking_error_threshold=args.tracking_error_threshold, num_iter_max=args.num_iter_max, inpaint_online_eval=args.inpaint_enabled)
 
