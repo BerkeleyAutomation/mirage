@@ -5,7 +5,7 @@ import numpy as np
 
 class ROSInpaintSimData:
     
-    def __init__(self, rgb: np.array, depth_map: np.array, segmentation: np.array, ee_pose: np.array, gripper_angles: np.array):
+    def __init__(self, rgb: np.array, depth_map: np.array, segmentation: np.array, ee_pose: np.array, gripper_angles: np.array, camera_name: str = "camera"):
         """
         Contains the data for ROS Inpainting
         
@@ -15,12 +15,14 @@ class ROSInpaintSimData:
             segmentation (np.array): W x H segmentation mask
             ee_pose (np.array): 4x4 end effector pose matrix
             gripper_angles (np.array): gripper joint angles that are not interpolated
+            camera_name (str): name of the camera
         """
         self.rgb = rgb
         self.depth_map = depth_map
         self.segmentation = segmentation
         self.ee_pose = ee_pose
         self.gripper_angles = gripper_angles
+        self.camera_name = camera_name
         
 class ROSInpaintPublisherSim(ROSInpaintPublisher):
     """
@@ -54,4 +56,5 @@ class ROSInpaintPublisherSim(ROSInpaintPublisher):
         msg.segmentation = segmentation_mask.flatten().tolist()
         msg.ee_pose = data.ee_pose.flatten().tolist()
         msg.interpolated_gripper = self.gripper_interpolator.interpolate_gripper(data.gripper_angles).flatten().tolist()
+        msg.camera_name = data.camera_name
         self._publisher.publish(msg)

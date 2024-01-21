@@ -4,7 +4,7 @@ import numpy as np
 
 class ROSInpaintRealData:
     
-    def __init__(self, rgb: np.array, depth_map: np.array, joints: np.array):
+    def __init__(self, rgb: np.array, depth_map: np.array, joints: np.array, camera_name: str = "camera"):
         """
         Contains the data for ROS Inpainting
         
@@ -12,10 +12,12 @@ class ROSInpaintRealData:
             rgb (np.array): W x H x 3 RGB image
             depth_map (np.array): W x H depth map
             joints (np.array): N + G size array containing all joint angles and gripper angles
+            camera_name (str): name of the camera
         """
         self.rgb = rgb
         self.depth_map = depth_map
         self.joints = joints
+        self.camera_name = camera_name
 
 class ROSInpaintPublisherReal(ROSInpaintPublisher):
     """
@@ -41,4 +43,5 @@ class ROSInpaintPublisherReal(ROSInpaintPublisher):
         msg.rgb = self._cv_bridge.cv2_to_imgmsg(data.rgb)
         msg.depth_map = data.depth_map.flatten().tolist()
         msg.joints = data.joints
+        msg.camera_name = data.camera_name
         self._publisher.publish(msg)

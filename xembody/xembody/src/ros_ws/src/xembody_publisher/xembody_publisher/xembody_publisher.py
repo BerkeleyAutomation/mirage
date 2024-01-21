@@ -1,4 +1,4 @@
-from xembody.src.general.ros_inpaint_publisher import ROSInpaintPublisher
+from xembody.src.general.ros_inpaint_publisher_sim import ROSInpaintPublisherSim
 import numpy as np
 import threading
 import os
@@ -7,7 +7,7 @@ import rclpy
 import pickle
 
 def start_publisher(data_file_path):
-    ros_inpaint_publisher = ROSInpaintPublisher()
+    ros_inpaint_publisher = ROSInpaintPublisherSim()
     spin_thread = threading.Thread(target=rclpy.spin, args=(ros_inpaint_publisher.node,)).start()
     
     data_file_path = os.path.join(data_file_path, 'data.pkl')
