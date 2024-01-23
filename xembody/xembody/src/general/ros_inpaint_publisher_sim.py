@@ -38,9 +38,9 @@ class ROSInpaintPublisherSim(ROSInpaintPublisher):
 
         self._publisher = self.node.create_publisher(
             InputFilesSimData, 'input_files_data_sim', 1)
-        
+
         # TODO: generalize this
-        self.gripper_interpolator = GripperInterpolator('panda', 'ur5')
+        self.gripper_interpolator = GripperInterpolator('panda', 'ur5', '/home/kdharmarajan/x-embody/xembody/xembody_robosuite/paired_trajectories_collection/gripper_interpolation_results_no_task_diff.pkl')
 
     def publish_to_ros_node(self, data: ROSInpaintSimData):
         """
