@@ -42,6 +42,11 @@ class ROSInpaintPublisherReal(ROSInpaintPublisher):
         msg = InputFilesRealData()
         msg.rgb = self._cv_bridge.cv2_to_imgmsg(data.rgb)
         msg.depth_map = data.depth_map.flatten().tolist()
-        msg.joints = data.joints
+
+        joints_out = data.joints
+        if type(joints_out) == np.ndarray:
+            joints_out = joints_out.tolist()
+
+        msg.joints = joints_out
         msg.camera_name = data.camera_name
         self._publisher.publish(msg)

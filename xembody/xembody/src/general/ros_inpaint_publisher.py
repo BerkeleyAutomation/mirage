@@ -90,7 +90,7 @@ class ROSInpaintPublisher(XEmbodyPublisher):
         """
         self.node.get_logger().info('Received inpainted & mask images')
         with self._internal_lock:
-            inpainted_msg = self._cv_bridge.imgmsg_to_cv2(inpaint_msg)\
+            inpainted_msg = self._cv_bridge.imgmsg_to_cv2(inpaint_msg)
             mask_msg = self._cv_bridge.imgmsg_to_cv2(mask_msg)
             self._cv_image = inpainted_msg
             
