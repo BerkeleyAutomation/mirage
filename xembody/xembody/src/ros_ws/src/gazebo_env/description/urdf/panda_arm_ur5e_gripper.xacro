@@ -1,0 +1,561 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="panda">
+  <xacro:macro name="panda_arm"
+    params="arm_id:='panda' description_pkg:='franka_description' connected_to:='' xyz:='0 0 0' rpy:='0 0 0'">
+    <xacro:unless value="${not connected_to}">
+      <joint name="${arm_id}_joint_${connected_to}" type="fixed">
+        <parent link="${connected_to}" />
+        <child link="${arm_id}_link0" />
+        <origin rpy="${rpy}" xyz="${xyz}" />
+      </joint>
+    </xacro:unless>
+    <link name="${arm_id}_link0">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/visual/link0.dae" />
+        </geometry>
+        <material name="LightGrey">
+          <color rgba="0.7 0.7 0.7 1.0" />
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/collision/link0.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <mass value="2.8142028896" />
+        <inertia ixx="0.0129886979" ixy="0.0" ixz="0.0" iyy="0.0165355284" iyz="0"
+          izz="0.0203311636" />
+      </inertial>
+    </link>
+    <link name="${arm_id}_link1">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/visual/link1.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/collision/link1.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <mass value="2.3599995791" />
+        <inertia ixx="0.0186863903" ixy="0.0" ixz="0.0" iyy="0.0143789874" iyz="0" izz="0.00906812" />
+      </inertial>
+
+    </link>
+    <joint name="${arm_id}_joint1" type="revolute">
+      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973"
+        soft_upper_limit="2.8973" />
+      <origin rpy="0 0 0" xyz="0 0 0.333" />
+      <parent link="${arm_id}_link0" />
+      <child link="${arm_id}_link1" />
+      <axis xyz="0 0 1" />
+      <limit effort="87" lower="-2.8973" upper="2.8973" velocity="2.1750" />
+    </joint>
+    <link name="${arm_id}_link2">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/visual/link2.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/collision/link2.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <mass value="2.379518833" />
+        <inertia ixx="0.0190388734" ixy="0.0" ixz="0.0" iyy="0.0091429124" iyz="0" izz="0.014697537" />
+      </inertial>
+
+    </link>
+    <joint name="${arm_id}_joint2" type="revolute">
+      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-1.7628"
+        soft_upper_limit="1.7628" />
+      <origin rpy="${-pi/2} 0 0" xyz="0 0 0" />
+      <parent link="${arm_id}_link1" />
+      <child link="${arm_id}_link2" />
+      <axis xyz="0 0 1" />
+      <limit effort="87" lower="-1.7628" upper="1.7628" velocity="2.1750" />
+    </joint>
+    <link name="${arm_id}_link3">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/visual/link3.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/collision/link3.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <mass value="2.6498823337" />
+        <inertia ixx="0.0129300178" ixy="0.0" ixz="0.0" iyy="0.0150242121" iyz="0"
+          izz="0.0142734598" />
+      </inertial>
+
+    </link>
+    <joint name="${arm_id}_joint3" type="revolute">
+      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973"
+        soft_upper_limit="2.8973" />
+      <origin rpy="${pi/2} 0 0" xyz="0 -0.316 0" />
+      <parent link="${arm_id}_link2" />
+      <child link="${arm_id}_link3" />
+      <axis xyz="0 0 1" />
+      <limit effort="87" lower="-2.8973" upper="2.8973" velocity="2.1750" />
+    </joint>
+    <link name="${arm_id}_link4">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/visual/link4.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/collision/link4.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <mass value="2.6948018744" />
+        <inertia ixx="0.0133874611" ixy="0.0" ixz="0.0" iyy="0.014514325" iyz="0" izz="0.0155175551" />
+      </inertial>
+    </link>
+    <joint name="${arm_id}_joint4" type="revolute">
+      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-3.0718"
+        soft_upper_limit="-0.0698" />
+      <origin rpy="${pi/2} 0 0" xyz="0.0825 0 0" />
+      <parent link="${arm_id}_link3" />
+      <child link="${arm_id}_link4" />
+      <axis xyz="0 0 1" />
+      <limit effort="87" lower="-3.0718" upper="-0.0698" velocity="2.1750" />
+    </joint>
+    <link name="${arm_id}_link5">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/visual/link5.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/collision/link5.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <mass value="2.9812816864" />
+        <inertia ixx="0.0325565705" ixy="0.0" ixz="0.0" iyy="0.0270660472" iyz="0"
+          izz="0.0115023375" />
+      </inertial>
+    </link>
+    <joint name="${arm_id}_joint5" type="revolute">
+      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973"
+        soft_upper_limit="2.8973" />
+      <origin rpy="${-pi/2} 0 0" xyz="-0.0825 0.384 0" />
+      <parent link="${arm_id}_link4" />
+      <child link="${arm_id}_link5" />
+      <axis xyz="0 0 1" />
+      <limit effort="12" lower="-2.8973" upper="2.8973" velocity="2.6100" />
+    </joint>
+    <link name="${arm_id}_link6">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/visual/link6.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/collision/link6.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <mass value="1.1285806309" />
+        <inertia ixx="0.0026052565" ixy="0.0" ixz="0.0" iyy="0.0039897229" iyz="0"
+          izz="0.0047048591" />
+      </inertial>
+    </link>
+    <joint name="${arm_id}_joint6" type="revolute">
+      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-0.0175"
+        soft_upper_limit="3.7525" />
+      <origin rpy="${pi/2} 0 0" xyz="0 0 0" />
+      <parent link="${arm_id}_link5" />
+      <child link="${arm_id}_link6" />
+      <axis xyz="0 0 1" />
+      <limit effort="12" lower="-0.0175" upper="3.7525" velocity="2.6100" />
+    </joint>
+    <link name="${arm_id}_link7">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/visual/link7.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="file://$(find gazebo_env)/meshes/panda/collision/link7.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <mass value="0.4052912465" />
+        <inertia ixx="0.0006316592" ixy="0.0" ixz="0.0" iyy="0.0006319639" iyz="0"
+          izz="0.0010607721" />
+      </inertial>
+    </link>
+    <joint name="${arm_id}_joint7" type="revolute">
+      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973"
+        soft_upper_limit="2.8973" />
+      <origin rpy="${pi/2} 0 0" xyz="0.088 0 0" />
+      <parent link="${arm_id}_link6" />
+      <child link="${arm_id}_link7" />
+      <axis xyz="0 0 1" />
+      <limit effort="12" lower="-2.8973" upper="2.8973" velocity="2.6100" />
+    </joint>
+    <link name="${arm_id}_link8" />
+    <joint name="${arm_id}_joint8" type="fixed">
+      <origin rpy="0 0 0" xyz="0 0 0.107" />
+      <parent link="${arm_id}_link7" />
+      <child link="${arm_id}_link8" />
+      <axis xyz="0 0 0" />
+    </joint>
+    <joint name="ee_fixed_joint" type="fixed">
+      <parent link="${arm_id}_link8" />
+      <child link="ee_link" />
+      <origin rpy="0.0 0.0 1.57079632679" xyz="0.0 0.1 0.0" />
+    </joint>
+    <link name="ee_link">
+      <collision>
+        <geometry>
+          <box size="0.01 0.01 0.01" />
+        </geometry>
+        <origin rpy="0 0 0" xyz="-0.01 0 0" />
+      </collision>
+    </link>
+    <joint name="arm_gripper_adapter_joint" type="fixed">
+      <parent link="${arm_id}_link8" />
+      <child link="adapter_link" />
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+    </joint>
+    <gazebo reference="adapter_link">
+      <material>Gazebo/Black</material>
+    </gazebo>
+    <link name="adapter_link">
+      <visual>
+        <geometry>
+          <cylinder length="0.016" radius="0.035"/>
+        </geometry>
+        <origin rpy="0 0 0" xyz="0 0 0.008" />
+      </visual>
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <mass value="1.1285806309" />
+        <inertia ixx="0.0026052565" ixy="0.0" ixz="0.0" iyy="0.0039897229" iyz="0"
+          izz="0.0047048591" />
+      </inertial>
+    </link>
+    <joint name="arm_gripper_joint" type="fixed">
+      <parent link="adapter_link" />
+      <child link="robotiq_85_base_link" />
+      <origin rpy="0.0 -1.5708 0.0" xyz="0.0 0.0 0.016" />
+    </joint>
+    <link name="robotiq_85_base_link">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/visual/robotiq_85_base_link.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/collision/robotiq_85_base_link.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.636951" />
+        <origin xyz="0.0 0.0 0.0" />
+        <inertia ixx="0.000380" ixy="0.000000" ixz="0.000000"
+          iyx="0.000000" iyy="0.001110" iyz="0.000000"
+          izx="0.000000" izy="0.000000" izz="0.001171" />
+      </inertial>
+    </link>
+    <joint name="robotiq_85_left_knuckle_joint" type="revolute">
+      <parent link="robotiq_85_base_link" />
+      <child link="robotiq_85_left_knuckle_link" />
+      <axis xyz="0 0 1" />
+      <origin rpy="3.14 0.0 0.0" xyz="0.05490451627 0.03060114443 0.0" />
+      <limit lower="0.0" upper="0.80285" velocity="3.14" effort="1000" />
+    </joint>
+
+    <joint name="robotiq_85_right_knuckle_joint" type="revolute">
+      <parent link="robotiq_85_base_link" />
+      <child link="robotiq_85_right_knuckle_link" />
+      <axis xyz="0 0 1" />
+      <origin rpy="0.0 0.0 0.0" xyz="0.05490451627 -0.03060114443 0.0" />
+      <limit lower="-3.14" upper="3.14" velocity="3.14" effort="1000" />
+      <mimic joint="robotiq_85_left_knuckle_joint" />
+    </joint>
+
+    <link name="robotiq_85_left_knuckle_link">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/visual/robotiq_85_knuckle_link.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/collision/robotiq_85_knuckle_link.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.018491" />
+        <origin xyz="0.0 0.0 0.0" />
+        <inertia ixx="0.000009" ixy="-0.000001" ixz="0.000000"
+          iyx="-0.000001" iyy="0.000001" iyz="0.000000"
+          izx="0.000000" izy="0.000000" izz="0.000010" />
+      </inertial>
+    </link>
+
+    <link name="robotiq_85_right_knuckle_link">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/visual/robotiq_85_knuckle_link.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/collision/robotiq_85_knuckle_link.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.018491" />
+        <origin xyz="0.0 0.0 0.0" />
+        <inertia ixx="0.000009" ixy="-0.000001" ixz="0.000000"
+          iyx="-0.000001" iyy="0.000001" iyz="0.000000"
+          izx="0.000000" izy="0.000000" izz="0.000010" />
+      </inertial>
+    </link>
+
+    <joint name="robotiq_85_left_finger_joint" type="fixed">
+      <parent link="robotiq_85_left_knuckle_link" />
+      <child link="robotiq_85_left_finger_link" />
+      <origin xyz="-0.00408552455 -0.03148604435 0.0" rpy="0 0 0" />
+    </joint>
+
+    <joint name="robotiq_85_right_finger_joint" type="fixed">
+      <parent link="robotiq_85_right_knuckle_link" />
+      <child link="robotiq_85_right_finger_link" />
+      <origin xyz="-0.00408552455 -0.03148604435 0.0" rpy="0 0 0" />
+    </joint>
+
+    <link name="robotiq_85_left_finger_link">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/visual/robotiq_85_finger_link.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/collision/robotiq_85_finger_link.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.027309" />
+        <origin xyz="0.0 0.0 0.0" />
+        <inertia ixx="0.000003" ixy="-0.000002" ixz="0.000000"
+          iyx="-0.000002" iyy="0.000021" iyz="0.000000"
+          izx="0.000000" izy="0.000000" izz="0.000020" />
+      </inertial>
+    </link>
+
+    <link name="robotiq_85_right_finger_link">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/visual/robotiq_85_finger_link.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/collision/robotiq_85_finger_link.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.027309" />
+        <origin xyz="0.0 0.0 0.0" />
+        <inertia ixx="0.000003" ixy="-0.000002" ixz="0.000000"
+          iyx="-0.000002" iyy="0.000021" iyz="0.000000"
+          izx="0.000000" izy="0.000000" izz="0.000020" />
+      </inertial>
+    </link>
+
+    <joint name="robotiq_85_left_inner_knuckle_joint" type="revolute">
+      <parent link="robotiq_85_base_link" />
+      <child link="robotiq_85_left_inner_knuckle_link" />
+      <axis xyz="0 0 1" />
+      <origin xyz="0.06142 0.0127 0" rpy="3.14 0.0 0.0" />
+      <limit lower="-3.14" upper="3.14" velocity="3.14" effort="0.1" />
+      <mimic joint="robotiq_85_left_knuckle_joint" offset="0" />
+    </joint>
+
+    <joint name="robotiq_85_right_inner_knuckle_joint" type="revolute">
+      <parent link="robotiq_85_base_link" />
+      <child link="robotiq_85_right_inner_knuckle_link" />
+      <axis xyz="0 0 1" />
+      <origin xyz="0.06142 -0.0127 0" rpy="0 0 0" />
+      <limit lower="-3.14" upper="3.14" velocity="3.14" effort="0.1" />
+      <mimic joint="robotiq_85_left_knuckle_joint" offset="0" />
+    </joint>
+
+    <link name="robotiq_85_left_inner_knuckle_link">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/visual/robotiq_85_inner_knuckle_link.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/collision/robotiq_85_inner_knuckle_link.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.029951" />
+        <origin xyz="0.0 0.0 0.0" />
+        <inertia ixx="0.000039" ixy="0.000000" ixz="0.000000"
+          iyx="0.000000" iyy="0.000005" iyz="0.000000"
+          izx="0.000000" izy="0.000000" izz="0.000035" />
+      </inertial>
+    </link>
+    <link name="robotiq_85_right_inner_knuckle_link">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/visual/robotiq_85_inner_knuckle_link.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/collision/robotiq_85_inner_knuckle_link.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.029951" />
+        <origin xyz="0.0 0.0 0.0" />
+        <inertia ixx="0.000039" ixy="0.000000" ixz="0.000000"
+          iyx="0.000000" iyy="0.000005" iyz="0.000000"
+          izx="0.000000" izy="0.000000" izz="0.000035" />
+      </inertial>
+    </link>
+
+    <joint name="robotiq_85_left_finger_tip_joint" type="revolute">
+      <parent link="robotiq_85_left_inner_knuckle_link" />
+      <child link="robotiq_85_left_finger_tip_link" />
+      <axis xyz="0 0 1" />
+      <origin xyz="0.04303959807 -0.03759940821 0.0" rpy="0.0 0.0 0.0" />
+      <limit lower="-3.14" upper="3.14" velocity="3.14" effort="0.1" />
+      <mimic joint="robotiq_85_left_knuckle_joint" multiplier="-1" />
+    </joint>
+
+    <joint name="robotiq_85_right_finger_tip_joint" type="revolute">
+      <parent link="robotiq_85_right_inner_knuckle_link" />
+      <child link="robotiq_85_right_finger_tip_link" />
+      <axis xyz="0 0 1" />
+      <origin rpy="0.0 0.0 0.0" xyz="0.04303959807 -0.03759940821  0.0" />
+      <limit lower="-3.14" upper="3.14" velocity="3.14" effort="0.1" />
+      <mimic joint="robotiq_85_left_knuckle_joint" multiplier="-1" />
+    </joint>
+
+
+    <link name="robotiq_85_left_finger_tip_link">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/visual/robotiq_85_finger_tip_link.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/collision/robotiq_85_finger_tip_link.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.019555" />
+        <origin xyz="0.0 0.0 0.0" />
+        <inertia ixx="0.000002" ixy="0.000000" ixz="0.000000"
+          iyx="0.000000" iyy="0.000005" iyz="0.000000"
+          izx="0.000000" izy="0.000000" izz="0.000006" />
+      </inertial>
+    </link>
+
+    <link name="robotiq_85_right_finger_tip_link">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/visual/robotiq_85_finger_tip_link.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh
+            filename="file://$(find gazebo_env)/meshes/ur5e_nvidia/robotiq_85_gripper/collision/robotiq_85_finger_tip_link.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.019555" />
+        <origin xyz="0.0 0.0 0.0" />
+        <inertia ixx="0.000002" ixy="0.000000" ixz="0.000000"
+          iyx="0.000000" iyy="0.000005" iyz="0.000000"
+          izx="0.000000" izy="0.000000" izz="0.000006" />
+      </inertial>
+    </link>
+
+    <link name="tool0" />
+    <joint name="wrist_3_link-tool0_fixed_joint" type="fixed">
+      <origin rpy="0 0 0" xyz="0 0 0.1" />
+      <parent link="${arm_id}_link8" />
+      <child link="tool0" />
+    </joint>
+    <link name="panda_ee_link" />
+    <joint name="link8_to_panda_ee_link_fixed_joint" type="fixed">
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <parent link="${arm_id}_link8" />
+      <child link="panda_ee_link" />
+    </joint>
+  </xacro:macro>
+</robot>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="panda">
+  <xacro:include filename="$(find gazebo_env)/urdf/panda_arm_ur5e_gripper.xacro"/>
+  <link name="world" />
+  <!-- Lift task-->
+  <xacro:panda_arm connected_to="world" xyz="0 0 0"/> 
+  <gazebo>
+    <plugin name="no_physics" filename="libno_physics_plugin.so" />
+  </gazebo>
+  <gazebo>
+    <plugin name="panda_control_real" filename="libpanda_control_ur5e_gripper_real_plugin.so" />
+  </gazebo>
+</robot>

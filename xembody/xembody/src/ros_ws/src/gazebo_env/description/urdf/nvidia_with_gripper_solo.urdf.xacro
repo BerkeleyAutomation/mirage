@@ -1,0 +1,7 @@
+<robot name="ur5e_scene" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find gazebo_env)/urdf/nvidia_with_gripper.urdf.xacro" />
+  <link name="world" />
+  <xacro:ur5e_gripper parent="world">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+  </xacro:ur5e_gripper>
+</robot>

@@ -1,4 +1,4 @@
 string rgb
-string pointcloud
+string depth
 string segmentation
 string joints

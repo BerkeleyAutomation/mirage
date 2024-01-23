@@ -3,4 +3,3 @@ float64[] depth_map
 uint8[] segmentation
 float64[] ee_pose
 float64[] interpolated_gripper
-string camera_name
