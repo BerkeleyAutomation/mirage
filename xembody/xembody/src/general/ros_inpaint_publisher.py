@@ -3,6 +3,7 @@ from sensor_msgs.msg import Image, PointCloud2
 from cv_bridge import CvBridge
 from xembody.src.general.xembody_publisher import XEmbodyPublisher
 from sensor_msgs.msg import PointCloud2, PointField
+from input_filenames_msg.msg import MultipleInpaintImages
 import cv2
 import numpy as np
 import threading
@@ -30,17 +31,20 @@ class ROSInpaintPublisher(XEmbodyPublisher):
         self._pcd_publisher = self.node.create_publisher(
             PointCloud2, 'point_cloud_output', 1)
         
-        self._analytic_inpaint_subscriber = message_filters.Subscriber(self.node, Image, 'inpainted_image')
-        self._mask_subscriber = message_filters.Subscriber(self.node, Image, 'full_mask_image')
-        self._time_sync = message_filters.ApproximateTimeSynchronizer(
-            [self._analytic_inpaint_subscriber, self._mask_subscriber], 
-            10, 
-            0.1
-        )
-        self._time_sync.registerCallback(self._inpaint_image_callback)
+        # self._analytic_inpaint_subscriber = message_filters.Subscriber(self.node, Image, 'inpainted_image')
+        # self._mask_subscriber = message_filters.Subscriber(self.node, Image, 'full_mask_image')
+        # self._time_sync = message_filters.ApproximateTimeSynchronizer(
+        #     [self._analytic_inpaint_subscriber, self._mask_subscriber], 
+        #     10, 
+        #     0.1
+        # )
+        # self._time_sync.registerCallback(self._inpaint_image_callback)
         
+        self._inpaint_sub = self.node.create_subscription(
+            MultipleInpaintImages, 'inpainted_image', self._inpaint_single, 1)
+
         self._cv_bridge = CvBridge()
-        self._cv_image = None
+        self._cv_images = None
         self._internal_lock = threading.Lock()
 
     def _create_pointcloud_msg(self, points: np.array) -> PointCloud2:
@@ -72,8 +76,8 @@ class ROSInpaintPublisher(XEmbodyPublisher):
         :return: The inpainted image.
         """
         with self._internal_lock:
-            out_img = self._cv_image
-            self._cv_image = None
+            out_img = self._cv_images
+            self._cv_images = None
         return out_img
     
     def _is_item_available(self) -> bool:
@@ -81,7 +85,7 @@ class ROSInpaintPublisher(XEmbodyPublisher):
         Whether an item is available.
         :return: Whether an item is available.
         """
-        return self._cv_image is not None
+        return self._cv_images is not None
 
     def _inpaint_image_callback(self, inpaint_msg, mask_msg):
         """
@@ -92,7 +96,24 @@ class ROSInpaintPublisher(XEmbodyPublisher):
         with self._internal_lock:
             inpainted_msg = self._cv_bridge.imgmsg_to_cv2(inpaint_msg)
             mask_msg = self._cv_bridge.imgmsg_to_cv2(mask_msg)
-            self._cv_image = inpainted_msg
+            self._cv_images = inpainted_msg
+            
+            if self._use_diffusion:
+                # TODO: add the diffusion code here
+                # self._cv_image = diffusion output
+                pass
+            
+            with self._blocking_cond_variable:
+                self._blocking_cond_variable.notify()
+
+    def _inpaint_single(self, inpaint_msg):
+        self.node.get_logger().info('Received inpainted images')
+        print("Received inpainted images")
+        with self._internal_lock:
+            images = []
+            for image in inpaint_msg.images:
+                images.append(self._cv_bridge.imgmsg_to_cv2(image))
+            self._cv_images = images
             
             if self._use_diffusion:
                 # TODO: add the diffusion code here

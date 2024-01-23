@@ -40,13 +40,17 @@ class ROSProxyInpaintServer:
                 data = pickle.loads(received_data)
                 print("Received data from client")
 
-                ros_inpaint_data = ROSInpaintRealData(
-                    rgb=data["rgb"],
-                    depth_map=data["depth_map"],
-                    joints=data["joints"],
-                    camera_name=data["camera_name"]
-                )
-                self.ros_inpaint_publisher_real.publish_to_ros_node(ros_inpaint_data)
+                list_of_ros_inpaint_data = []
+                for dict_info in data:
+                    ros_inpaint_data = ROSInpaintRealData(
+                        rgb=dict_info["rgb"],
+                        depth_map=dict_info["depth_map"],
+                        joints=dict_info["joints"],
+                        camera_name=dict_info["camera_name"]
+                    )
+                    list_of_ros_inpaint_data.append(ros_inpaint_data)
+
+                self.ros_inpaint_publisher_real.publish_to_ros_node(list_of_ros_inpaint_data)
                 print("Sending data to ROS")
 
                 inpainted_img = self.ros_inpaint_publisher_real.get_inpainted_image(blocking=True)
@@ -77,4 +81,4 @@ class ROSProxyInpaintServer:
 
 if __name__ == "__main__":
     ros_proxy_inpaint_server = ROSProxyInpaintServer()
-    ros_proxy_inpaint_server.handle_inpainting_info()
+    ros_proxy_inpaint_server.listen_for_connections()

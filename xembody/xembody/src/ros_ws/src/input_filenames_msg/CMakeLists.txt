@@ -21,6 +21,8 @@ set(msg_files
   "msg/InputFilesRobosuiteData.msg"
   "msg/InputFilesSimData.msg"
   "msg/InputFilesRealData.msg"
+  "msg/InputFilesRealDataMulti.msg"
+  "msg/MultipleInpaintImages.msg"
   DEPENDENCIES builtin_interfaces std_msgs sensor_msgs
 )
 

@@ -1,6 +1,7 @@
-from input_filenames_msg.msg import InputFilesRealData
+from input_filenames_msg.msg import InputFilesRealDataMulti
 from xembody.src.general.ros_inpaint_publisher import ROSInpaintPublisher
 import numpy as np
+from typing import List
 
 class ROSInpaintRealData:
     
@@ -32,21 +33,25 @@ class ROSInpaintPublisherReal(ROSInpaintPublisher):
         super().__init__(use_diffusion=use_diffusion)
 
         self._publisher = self.node.create_publisher(
-            InputFilesRealData, 'input_files_data_real', 1)
+            InputFilesRealDataMulti, 'input_files_data_real', 1)
 
-    def publish_to_ros_node(self, data: ROSInpaintRealData):
+    def publish_to_ros_node(self, data: List[ROSInpaintRealData]):
         """
         Publishes the RGB image, segmentation mask, and joint angles to the ROS2 node.
         :param data: The ROS Inpainting data to be published.
         """
-        msg = InputFilesRealData()
-        msg.rgb = self._cv_bridge.cv2_to_imgmsg(data.rgb)
-        msg.depth_map = data.depth_map.flatten().tolist()
+        msg = InputFilesRealDataMulti()
 
-        joints_out = data.joints
-        if type(joints_out) == np.ndarray:
-            joints_out = joints_out.tolist()
+        out_msg_data = []
+        for inpaint_data in out_msg_data:
+            msg.rgb = self._cv_bridge.cv2_to_imgmsg(inpaint_data.rgb)
+            msg.depth_map = inpaint_data.depth_map.flatten().tolist()
 
-        msg.joints = joints_out
-        msg.camera_name = data.camera_name
+            joints_out = inpaint_data.joints
+            if type(joints_out) == np.ndarray:
+                joints_out = joints_out.tolist()
+
+            msg.joints = joints_out
+            msg.camera_name = inpaint_data.camera_name
+        msg.data_pieces = out_msg_data
         self._publisher.publish(msg)
