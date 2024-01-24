@@ -43,7 +43,7 @@ class ROSInpaintPublisherReal(ROSInpaintPublisher):
         msg = InputFilesRealDataMulti()
 
         out_msg_data = []
-        for inpaint_data in out_msg_data:
+        for inpaint_data in data:
             msg.rgb = self._cv_bridge.cv2_to_imgmsg(inpaint_data.rgb)
             msg.depth_map = inpaint_data.depth_map.flatten().tolist()
 
