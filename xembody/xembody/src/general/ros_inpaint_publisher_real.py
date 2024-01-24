@@ -1,4 +1,4 @@
-from input_filenames_msg.msg import InputFilesRealDataMulti
+from input_filenames_msg.msg import InputFilesRealDataMulti, InputFilesRealData
 from xembody.src.general.ros_inpaint_publisher import ROSInpaintPublisher
 import numpy as np
 from typing import List
@@ -44,14 +44,16 @@ class ROSInpaintPublisherReal(ROSInpaintPublisher):
 
         out_msg_data = []
         for inpaint_data in data:
-            msg.rgb = self._cv_bridge.cv2_to_imgmsg(inpaint_data.rgb)
-            msg.depth_map = inpaint_data.depth_map.flatten().tolist()
+            current_data_msg = InputFilesRealData()
+            current_data_msg.rgb = self._cv_bridge.cv2_to_imgmsg(inpaint_data.rgb)
+            current_data_msg.depth_map = inpaint_data.depth_map.flatten().tolist()
 
             joints_out = inpaint_data.joints
             if type(joints_out) == np.ndarray:
                 joints_out = joints_out.tolist()
 
-            msg.joints = joints_out
-            msg.camera_name = inpaint_data.camera_name
+            current_data_msg.joints = joints_out
+            current_data_msg.camera_name = inpaint_data.camera_name
+            out_msg_data.append(current_data_msg)
         msg.data_pieces = out_msg_data
         self._publisher.publish(msg)
