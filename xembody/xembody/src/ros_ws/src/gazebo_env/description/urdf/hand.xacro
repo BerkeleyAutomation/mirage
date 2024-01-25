@@ -78,5 +78,11 @@
       <limit effort="20" lower="0.0" upper="0.04" velocity="0.2"/>
       <mimic joint="${ns}_finger_joint1" />
     </joint>
+    <joint name="ee_joint" type="fixed">
+      <parent link="${ns}_hand"/>
+      <child link="${ns}_ee"/>
+      <origin xyz="0 0 0.096" rpy="0 0 0"/>
+    </joint>
+    <link name="${ns}_ee" />
   </xacro:macro>
 </robot>

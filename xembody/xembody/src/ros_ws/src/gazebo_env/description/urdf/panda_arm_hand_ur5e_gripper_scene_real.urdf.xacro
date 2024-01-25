@@ -3,7 +3,7 @@
   <xacro:include filename="$(find gazebo_env)/urdf/panda_arm_ur5e_gripper.xacro"/>
   <link name="world" />
   <!-- Lift task-->
-  <xacro:panda_arm connected_to="world" xyz="0 0 0"/> 
+  <xacro:panda_with_ur5e_gripper connected_to="world" xyz="0 0 0"/> 
   <gazebo>
     <plugin name="no_physics" filename="libno_physics_plugin.so" />
   </gazebo>

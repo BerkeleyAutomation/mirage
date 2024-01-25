@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="panda">
-  <xacro:macro name="panda_arm"
-    params="arm_id:='panda' description_pkg:='franka_description' connected_to:='' xyz:='0 0 0' rpy:='0 0 0'">
+  <xacro:macro name="panda_with_ur5e_gripper"
+    params="arm_id:='panda_with_ur5_gripper' description_pkg:='franka_description' connected_to:='' xyz:='0 0 0' rpy:='0 0 0'">
     <xacro:unless value="${not connected_to}">
       <joint name="${arm_id}_joint_${connected_to}" type="fixed">
         <parent link="${connected_to}" />
@@ -296,6 +296,12 @@
           izx="0.000000" izy="0.000000" izz="0.001171" />
       </inertial>
     </link>
+    <joint name="ur5_ee_gripper_joint" type="fixed">
+      <parent link="robotiq_85_base_link" />
+      <child link="ur5_ee_gripper" />
+      <origin rpy="-1.571 0 -1.571" xyz="0.127 0.0 0.0" />
+    </joint>
+    <link name="ur5_ee_gripper" />
     <joint name="robotiq_85_left_knuckle_joint" type="revolute">
       <parent link="robotiq_85_base_link" />
       <child link="robotiq_85_left_knuckle_link" />

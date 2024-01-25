@@ -43,7 +43,7 @@ class WriteData(Node):
         self.debug_ = True
         file_directory = pathlib.Path(__file__).parent.resolve()
         self.panda_urdf_ = os.path.join(file_directory,'../../../../src/gazebo_env/description/urdf/panda_ur5_gripper_ik_real.urdf')        
-        self.panda_solver_ = TracIKSolver(self.panda_urdf_,"panda_link0","panda_link8")
+        self.panda_solver_ = TracIKSolver(self.panda_urdf_,"panda_with_ur5_gripper_link0","panda_with_ur5_gripper_link8")
         self.ur5_urdf_ = os.path.join(file_directory,'../../../../src/gazebo_env/description/urdf/ur5_ik_real.urdf')
         self.chain_ = kp.build_chain_from_urdf(open(self.panda_urdf_).read())
         self.ur5_solver_ = TracIKSolver(self.ur5_urdf_,"base_link","wrist_3_link")
@@ -1045,7 +1045,7 @@ class WriteData(Node):
         while(qout is None):
             b_xyz *= 10
             b_rpy *= 10
-            qout = self.ur5_solver_.ik(ee_pose,qinit=self.q_init_,bx=b_xyz,by=b_xyz,bz=b_xyz,brx=b_rpy,bry=b_rpy,brz=b_rpy)
+            qout = self.panda_solver_.ik(ee_pose,qinit=self.q_init_,bx=b_xyz,by=b_xyz,bz=b_xyz,brx=b_rpy,bry=b_rpy,brz=b_rpy)
             if(b_xyz == 0.01):
                 print("Couldn't find good IK")
                 qout = self.q_init_

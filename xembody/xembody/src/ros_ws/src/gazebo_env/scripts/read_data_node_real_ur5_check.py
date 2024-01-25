@@ -47,6 +47,7 @@ class ReadData(Node):
         input_file_msg.rgb = self.rgb_
         input_file_msg.depth_map = self.depth_
         input_file_msg.joints = self.joints_
+        time.sleep(1)
         self.publisher_.publish(input_file_msg)
         print("Published")
         self.is_ready_ = True

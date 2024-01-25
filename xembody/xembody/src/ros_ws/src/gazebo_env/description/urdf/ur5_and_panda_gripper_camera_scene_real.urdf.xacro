@@ -8,12 +8,13 @@
   </xacro:ur5_gripper>
   <xacro:include filename="$(find gazebo_env)/urdf/real_ur5_cam.urdf.xacro" />
   <xacro:sensor_d435_ur5 parent="world">
-    <origin xyz="0.68932328 0.46323362 10.5126494" rpy="0.07734628  0.52425034 -1.86315473" />
+    <origin xyz="0.68760298 0.39006238 10.46098218" rpy="0.06390863  0.58797942 -2.01314893" />
   </xacro:sensor_d435_ur5>
 
   <!-- Lift task-->
   <xacro:panda_arm connected_to="world" xyz="10 0 10"/> 
-  <xacro:hand ns="panda" rpy="0 0 0" connected_to="panda_link8"/>
+  <xacro:hand ns="panda" rpy="0 0 ${3 * pi/4}" connected_to="panda_link8"/>
+  
 
   <!-- Can task-->
   <!-- <xacro:panda_arm connected_to="world" xyz="-0.56 -0.1 10.912"/>  -->
@@ -22,7 +23,7 @@
     <!-- for some reason we have to modify the xyz because it is a little shifted-->
 
     <!-- Lift task-->
-    <origin xyz="10.68932328 0.46323362 10.5126494" rpy="0.07734628  0.52425034 -1.86315473" />
+    <origin xyz="10.68760298 0.39006238 10.46098218" rpy="0.06390863  0.58797942 -2.01314893" />
     <!-- Can task-->
     <!-- <origin xyz="1.016 0.018 11.749" rpy="0 0.7840421 3.1415927" />  -->
   </xacro:sensor_d435_panda>
