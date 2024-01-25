@@ -19,12 +19,12 @@ set(msg_files
   "msg/InputFilesData.msg"
   "msg/InputFilesRobosuite.msg"
   "msg/InputFilesRobosuiteData.msg"
+  "msg/InputFilesFrankaToFranka.msg"
+  "msg/InputFilesRealDataMulti.msg"
+  "msg/InputFilesDiffusionData.msg"
   "msg/InputFilesSimData.msg"
   "msg/InputFilesRealData.msg"
-  "msg/InputFilesRealDataMulti.msg"
   "msg/MultipleInpaintImages.msg"
-  "msg/InputFilesFrankaToFranka.msg"
-  "msg/InputFilesDiffusionData.msg"
   DEPENDENCIES builtin_interfaces std_msgs sensor_msgs
 )
 

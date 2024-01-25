@@ -262,6 +262,12 @@
       <parent link="flange" />
       <child link="tool0" />
     </joint>
+    <joint name="tool0-ur5_ee_gripper" type="fixed">
+      <origin rpy="0 0 0" xyz="0 0 0.143" />
+      <parent link="tool0" />
+      <child link="ur5_ee_gripper" />
+    </joint>
+    <link name="ur5_ee_gripper" />
     <!-- <joint name="arm_gripper_joint" type="fixed">
       <parent link="wrist_3_link" />
       <child link="robotiq_85_base_link" />

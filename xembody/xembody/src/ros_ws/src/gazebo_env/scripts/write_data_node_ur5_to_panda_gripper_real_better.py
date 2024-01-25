@@ -41,12 +41,13 @@ class WriteData(Node):
         self.is_ready_ = False
         self.thetas_ = None
         self.debug_ = True
+        self.float_image_ = False
         file_directory = pathlib.Path(__file__).parent.resolve()
-        self.panda_urdf_ = os.path.join(file_directory,'../../../../src/gazebo_env/description/urdf/panda_ur5_gripper_ik_real.urdf')        
-        self.panda_solver_ = TracIKSolver(self.panda_urdf_,"panda_link0","panda_link8")
+        self.panda_urdf_ = os.path.join(file_directory,'../../../../src/gazebo_env/description/urdf/panda_gripper_ik_real.urdf')        
+        self.panda_solver_ = TracIKSolver(self.panda_urdf_,"panda_link0","panda_ee")
         self.ur5_urdf_ = os.path.join(file_directory,'../../../../src/gazebo_env/description/urdf/ur5_ik_real.urdf')
         self.chain_ = kp.build_chain_from_urdf(open(self.panda_urdf_).read())
-        self.ur5_solver_ = TracIKSolver(self.ur5_urdf_,"base_link","wrist_3_link")
+        self.ur5_solver_ = TracIKSolver(self.ur5_urdf_,"base_link","ur5_ee_gripper")
 
         # real_camera_link to world and then multiply translation by 1000
         # self.camera_to_world_ = np.array([[0,1,0,0],
@@ -521,6 +522,9 @@ class WriteData(Node):
             os.makedirs('mask')
         cv2.imwrite('inpainting/inpaint'+ str(inpaint_number) +'.png',inpainted_image)
         cv2.imwrite('mask/mask'+ str(inpaint_number) +'.png',better_dilated_blend_mask.astype(np.uint8))
+        if(self.float_image_):
+            import pdb
+            pdb.set_trace()
         inpainted_image_msg = self.cv_bridge_.cv2_to_imgmsg(inpainted_image,encoding="bgr8")
         mask_image_msg = self.cv_bridge_.cv2_to_imgmsg(better_dilated_blend_mask.astype(np.uint8),encoding="mono8")
         self.inpainted_publisher_.publish(inpainted_image_msg)
@@ -1022,6 +1026,9 @@ class WriteData(Node):
             os.makedirs(online_input_num_folder)
         
         rgb_np = self.cv_bridge_.imgmsg_to_cv2(msg.rgb)
+        if(rgb_np.dtype == np.float32):
+            self.float_image_ = True
+            rgb_np = (rgb_np * 255).astype(np.uint8)
         # rgb_np = np.array(msg.rgb,dtype=np.uint8).reshape((msg.segmentation.width,msg.segmentation.height,3))
         cv2.imwrite(online_input_num_folder+'/rgb.png',rgb_np)
         depth_np = np.array(msg.depth_map,dtype=np.float64).reshape((msg.rgb.height,msg.rgb.width))

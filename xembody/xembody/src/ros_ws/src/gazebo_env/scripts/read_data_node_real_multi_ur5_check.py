@@ -22,7 +22,7 @@ from sensor_msgs_py import point_cloud2
 import cv2
 from cv_bridge import CvBridge
 import time
-from input_filenames_msg.msg import InputFilesRealData
+from input_filenames_msg.msg import InputFilesRealData, InputFilesRealDataMulti
 
 class ReadData(Node):
     def __init__(self):
@@ -32,23 +32,43 @@ class ReadData(Node):
         self.franka_info_folder_ = '/home/lawrence/cross_embodiment_ws/src/gazebo_env/ur5_check'
         self.check_npy_file_ = "/home/lawrence/cross_embodiment_ws/src/gazebo_env/ur5_check/check_ur5.npy"
         self.check_npy_ = np.load(self.check_npy_file_,allow_pickle=True).tolist()
-        print("Intrinsic matrix: " + str(self.check_npy_['cam_intrinsic_matrix_left']))
-        print("Extrinsic matrix: " + str(self.check_npy_['cam_extrinsic_matrix_left']))
-        self.rgb_np_ = self.check_npy_['img_0']['img_left']
-        self.depth_np_ = self.check_npy_['img_0']['depth']
+        print("Left Intrinsic matrix: " + str(self.check_npy_['cam_intrinsic_matrix_left']))
+        print("Left Extrinsic matrix: " + str(self.check_npy_['cam_extrinsic_matrix_left']))
+        self.left_rgb_np_ = self.check_npy_['img_0']['img_left']
+        self.left_depth_np_ = self.check_npy_['img_0']['depth']
         
-        cv2.imwrite('fake_depth.png',self.normalize_depth_image(self.depth_np_))
+        cv2.imwrite('fake_depth.png',self.normalize_depth_image(self.left_depth_np_))
         self.joints_np_ = np.array(self.check_npy_['img_0']['joint_angles'])
-        self.rgb_ = self.cv_bridge_.cv2_to_imgmsg(self.rgb_np_,'bgr8')
-        self.depth_ = self.depth_np_.astype('float64').flatten().tolist()
+        self.left_rgb_ = self.cv_bridge_.cv2_to_imgmsg(self.left_rgb_np_,'bgr8')
+        self.left_depth_ = self.left_depth_np_.astype('float64').flatten().tolist()
         self.joints_ = self.joints_np_.astype('float64').tolist()
-        self.publisher_ = self.create_publisher(InputFilesRealData,'/input_files_data_real',1)
-        input_file_msg = InputFilesRealData()
-        input_file_msg.rgb = self.rgb_
-        input_file_msg.depth_map = self.depth_
-        input_file_msg.joints = self.joints_
+        self.publisher_ = self.create_publisher(InputFilesRealDataMulti,'/input_files_data_real_multi',1)
+        left_input_file_msg = InputFilesRealData()
+        left_input_file_msg.rgb = self.left_rgb_
+        left_input_file_msg.depth_map = self.left_depth_
+        left_input_file_msg.joints = self.joints_
+        left_input_file_msg.camera_name = "left"
+
+        print("Right Intrinsic matrix: " + str(self.check_npy_['cam_intrinsic_matrix_right']))
+        print("Right Extrinsic matrix: " + str(self.check_npy_['cam_extrinsic_matrix_right']))
+        self.right_rgb_np_ = self.check_npy_['img_0']['img_right']
+        self.right_depth_np_ = self.check_npy_['img_0']['depth']
+        
+        self.joints_np_ = np.array(self.check_npy_['img_0']['joint_angles'])
+        self.right_rgb_ = self.cv_bridge_.cv2_to_imgmsg(self.right_rgb_np_,'bgr8')
+        self.right_depth_ = self.right_depth_np_.astype('float64').flatten().tolist()
+        self.joints_ = self.joints_np_.astype('float64').tolist()
+        self.publisher_ = self.create_publisher(InputFilesRealDataMulti,'/input_files_data_real_multi',1)
+        right_input_file_msg = InputFilesRealData()
+        right_input_file_msg.rgb = self.right_rgb_
+        right_input_file_msg.depth_map = self.right_depth_
+        right_input_file_msg.joints = self.joints_
+        right_input_file_msg.camera_name = "right"
+
+        self.input_file_msg = InputFilesRealDataMulti()
+        self.input_file_msg.data_pieces = [left_input_file_msg, right_input_file_msg]
         time.sleep(1)
-        self.publisher_.publish(input_file_msg)
+        self.publisher_.publish(self.input_file_msg)
         print("Published")
         self.is_ready_ = True
 

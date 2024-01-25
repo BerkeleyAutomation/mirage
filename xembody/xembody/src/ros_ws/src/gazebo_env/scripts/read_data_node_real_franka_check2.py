@@ -22,7 +22,7 @@ from sensor_msgs_py import point_cloud2
 import cv2
 from cv_bridge import CvBridge
 import time
-from input_filenames_msg.msg import InputFilesRealData
+from input_filenames_msg.msg import InputFilesRealData, InputFilesRealDataMulti
 
 class ReadData(Node):
     def __init__(self):
@@ -40,12 +40,15 @@ class ReadData(Node):
         self.rgb_ = self.cv_bridge_.cv2_to_imgmsg(self.rgb_np_,'bgr8')
         self.depth_ = self.depth_np_.astype('float64').flatten().tolist()
         self.joints_ = self.joints_np_.astype('float64').tolist()
-        self.publisher_ = self.create_publisher(InputFilesRealData,'/input_files_data_real',1)
+        self.joints_.append(0.0)
+        self.publisher_ = self.create_publisher(InputFilesRealDataMulti,'/input_files_data_real',1)
         input_file_msg = InputFilesRealData()
         input_file_msg.rgb = self.rgb_
         input_file_msg.depth_map = self.depth_
         input_file_msg.joints = self.joints_
-        self.publisher_.publish(input_file_msg)
+        input_file_msgs = InputFilesRealDataMulti()
+        input_file_msgs.data_pieces = [input_file_msg]
+        self.publisher_.publish(input_file_msgs)
         print("Published")
         self.is_ready_ = True
 
