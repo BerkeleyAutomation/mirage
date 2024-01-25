@@ -424,7 +424,7 @@ class Robot:
                 rollout_stats.append(stats)
                 inpaint_data_for_analysis.append(inpaint_data_for_analysis_1traj)
                 
-                if (not self.save_failed_demos and stats["Success_Rate"] >= 1) and self.write_dataset: # only save successful trajs
+                if (self.save_failed_demos or stats["Success_Rate"] >= 1) and self.write_dataset: # only save successful trajs
                     # store transitions
                     ep_data_grp = self.data_grp.create_group("demo_{}".format(i))
                     ep_data_grp.create_dataset("actions", data=np.array(traj["actions"]))
@@ -610,9 +610,9 @@ class SourceRobot(Robot):
                 self.conn.send(message_length)
                 self.conn.send(data_string)
                 # confirm that the target robot is ready
-                pickled_message_size = self.conn.recv(4)
+                pickled_message_size = self._receive_all_bytes(4)
                 message_size = struct.unpack("!I", pickled_message_size)[0]
-                data = self.conn.recv(message_size)
+                data = self._receive_all_bytes(message_size)
                 target_env_robot_state = pickle.loads(data)
                 # print("Receiving target object state and target robot pose from target robot")
                 assert target_env_robot_state.message == "Ready", "Target robot is not ready"
@@ -653,10 +653,10 @@ class SourceRobot(Robot):
             # receive target object state and target robot pose from target robot
             if self.passive:
                 if self.conn is not None:
-                    pickled_message_size = self.conn.recv(4)
+                    pickled_message_size = self._receive_all_bytes(4)
                     message_size = struct.unpack("!I", pickled_message_size)[0]
 
-                    data = self.conn.recv(message_size)
+                    data = self._receive_all_bytes(message_size)
                     target_env_robot_state = pickle.loads(data)
                     assert target_env_robot_state.message == "Request for Action", "Wrong synchronization"
                     # print("Receiving target object state and target robot pose from target robot")
@@ -710,6 +710,11 @@ class SourceRobot(Robot):
             if self.use_demo:
                 action = actions[step_i]
             else:
+                # Hack to get rid of stuff that screws with robomimic for coffee env
+                for k, v in obs_copy.items():
+                    if np.isscalar(v):
+                        obs_copy[k] = np.array([v])
+
                 action = self.policy(ob=obs_copy) # get action from policy
                 gt_action = action.copy()
             
@@ -843,9 +848,9 @@ class SourceRobot(Robot):
             
             # confirm that the target robot is ready for the next iteration
             if self.conn is not None:
-                pickled_message_size = self.conn.recv(4)
+                pickled_message_size = self._receive_all_bytes(4)
                 message_size = struct.unpack("!I", pickled_message_size)[0]
-                data = self.conn.recv(message_size)
+                data = self._receive_all_bytes(message_size)
 
                 target_env_robot_state = pickle.loads(data)
                 assert target_env_robot_state.message == "OK", "Wrong synchronization"
@@ -915,11 +920,21 @@ class SourceRobot(Robot):
         
         return stats, traj, []
 
+    def _receive_all_bytes(self, num_bytes: int) -> bytes:
+        """
+        Receives all the bytes.
+        :param num_bytes: The number of bytes.
+        :return: The bytes.
+        """
+        data = bytearray(num_bytes)
+        pos = 0
+        while pos < num_bytes:
+            cr = self.conn.recv_into(memoryview(data)[pos:])
+            if cr == 0:
+                raise EOFError
+            pos += cr
+        return data
 
-
-
-    
-    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 

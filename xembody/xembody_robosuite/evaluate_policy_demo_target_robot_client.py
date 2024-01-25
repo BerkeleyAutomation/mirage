@@ -138,9 +138,9 @@ class TargetRobot(Robot):
             # the target robot needs to be first initialized to the source object state and source robot pose
             # receive source object state and source robot pose from source robot
             if self.s is not None:
-                pickled_message_size = self.s.recv(4)
+                pickled_message_size = self._receive_all_bytes(4)
                 message_size = struct.unpack("!I", pickled_message_size)[0]
-                data = self.s.recv(message_size)
+                data = self._receive_all_bytes(message_size)
                 source_env_robot_state = pickle.loads(data)
                 print("Receiving source object state and source robot pose from source robot")
                 assert source_env_robot_state.message == "Ready"
@@ -324,9 +324,9 @@ class TargetRobot(Robot):
             # receive target object state and target robot pose from target robot
             if self.s is not None:
                 # breakpoint()
-                pickled_message_size = self.s.recv(4)
+                pickled_message_size = self._receive_all_bytes(4)
                 message_size = struct.unpack("!I", pickled_message_size)[0]
-                data = self.s.recv(message_size)
+                data = self._receive_all_bytes(message_size)
                 source_env_robot_state = pickle.loads(data)
                 assert source_env_robot_state.message == "Respond with Action", "Wrong Synchronization"
                 # print("Received actions")
@@ -519,6 +519,21 @@ class TargetRobot(Robot):
 
         return stats, traj, trajectory_timestep_infos
     
+    def _receive_all_bytes(self, num_bytes: int) -> bytes:
+        """
+        Receives all the bytes.
+        :param num_bytes: The number of bytes.
+        :return: The bytes.
+        """
+        data = bytearray(num_bytes)
+        pos = 0
+        while pos < num_bytes:
+            cr = self.s.recv_into(memoryview(data)[pos:])
+            if cr == 0:
+                raise EOFError
+            pos += cr
+        return data
+
 def mask_rgb_image(rgb_image, mask1, mask2):
     # Create a combined mask of the union of mask1 and mask2
     combined_mask = np.logical_or(mask1, mask2)
