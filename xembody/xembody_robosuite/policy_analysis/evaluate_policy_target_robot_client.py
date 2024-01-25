@@ -177,9 +177,9 @@ class TargetRobot(Robot):
                 "robot_eef_quat": obs['robot0_eef_quat'],
                 "robot0_gripper_qpos": obs['robot0_gripper_qpos']
             }
-            import matplotlib.pyplot as plt
-            inpainted_image = plt.imread(f"/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/data/results_color_threshold_skimage5/inpaint{step_i}.png")
-            np.save(f"inpaint_img.npy", inpainted_image, allow_pickle=True)
+            # import matplotlib.pyplot as plt
+            # inpainted_image = plt.imread(f"/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/data/results_color_threshold_skimage5/inpaint{step_i}.png")
+            # np.save(f"inpaint_img.npy", inpainted_image, allow_pickle=True)
             # np.save(f"output.npy", output_dict, allow_pickle=True)
 
             # self.ros_inpaint_publisher.publish_to_ros_node(rgb_img, points, segmentation_mask, joints)
@@ -338,7 +338,7 @@ class TargetRobot(Robot):
             else:
                 traj[k] = np.array(traj[k])
 
-        np.save(f"one_trajectory_source_target_with_inpainted.npy", all_data, allow_pickle=True)
+        np.save(f"one_trajectory_source_target_with_inpainted_{self.task_name}_{self.s.getsockname()[1]}.npy", all_data, allow_pickle=True)
         return stats, traj
     
     

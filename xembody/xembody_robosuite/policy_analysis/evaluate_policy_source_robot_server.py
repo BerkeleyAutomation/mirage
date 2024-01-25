@@ -45,6 +45,17 @@ class Data:
 tracking_error_history = []
 
 class Robot:
+
+    TASK_TO_OBJECT_STATES_MAP = {
+        "Lift": ["cube_joint0"],
+        "StackThree_D0": ["cubeA_joint0", "cubeB_joint0", "cubeC_joint0"],
+        "Stack_D0": ["cubeA_joint0", "cubeB_joint0"],
+        "Threading_D0": ["needle_obj_joint0"],
+        "ThreePieceAssembly_D0": ["piece_1_joint0", "piece_2_joint0"],
+        "Square_D0": ["SquareNut_joint0"],
+        "Coffee_D0": ["coffee_pod_joint0", "coffee_machine_joint0", "coffee_machine_lid_main_joint0"],
+    }
+
     def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None):
         """_summary_
 
@@ -58,6 +69,7 @@ class Robot:
             connection (socket, optional):
         """
         self.robot_name = robot_name
+        self.task_name = None
         self.ckpt_path = ckpt_path
         self.render = render
         self.video_path = video_path
@@ -82,6 +94,7 @@ class Robot:
                 robot=robot_name
             )
             self.control_delta = self.ckpt_dict["env_metadata"]['env_kwargs']['controller_configs']['control_delta']
+            self.task_name = self.ckpt_dict['env_metadata']['env_name']   
             self.eef_site_name = self.env.env.robots[0].controller.eef_name
             
             if self.rollout_horizon is None:
@@ -153,13 +166,17 @@ class Robot:
 
 
     def get_object_state(self):
-        object_state = self.env.env.sim.data.get_joint_qpos("cube_joint0")
+        object_state = []
+        if self.task_name:
+            for obj_name in self.TASK_TO_OBJECT_STATES_MAP[self.task_name]:
+                object_state.append(self.env.env.sim.data.get_joint_qpos(obj_name))
         return object_state
     
     def set_object_state(self, set_to_target_object_state=None):
-        if set_to_target_object_state is not None:
+        if set_to_target_object_state is not None and self.task_name:
             # set target object to target object state
-            self.env.env.sim.data.set_joint_qpos("cube_joint0", set_to_target_object_state)
+            for obj_name, obj_state in zip(self.TASK_TO_OBJECT_STATES_MAP[self.task_name], set_to_target_object_state):
+                self.env.env.sim.data.set_joint_qpos(obj_name, obj_state)
             self.env.env.sim.forward()
             
             self.obs = self.env.get_observation()
@@ -216,6 +233,7 @@ class Robot:
                     action_target[-1] = action[-1]
                     # print("action_target", action_target)
                     next_obs, r, done, _ = self.env.step(action_target)
+                    self.prev_action = action_target
                     # self.env.env.robots[0].controller.use_delta = False
                     # print("after", self.compute_eef_pose())
                 if error > tracking_error_threshold:
@@ -334,7 +352,7 @@ class SourceRobot(Robot):
                 layers.append(nn.ReLU())
         self.forward_dynamics_model = nn.Sequential(*layers)
         self.forward_dynamics_model.to("cuda")
-        self.forward_dynamics_model.load_state_dict(torch.load('/home/lawrence/xembody/robomimic/forward_dynamics/forward_dynamics_bc_img_300.pth'))
+        self.forward_dynamics_model.load_state_dict(torch.load('/home/kdharmarajan/x-embody/robomimic/forward_dynamics/forward_dynamics_bc_img_300.pth'))
         
     def rollout_robot(self, video_skip=5, return_obs=False, camera_names=None, set_object_state=False, set_robot_pose=False, tracking_error_threshold=0.003, num_iter_max=100, target_robot_delta_action=False):
         """
@@ -392,9 +410,9 @@ class SourceRobot(Robot):
                 variable = Data()
                 variable.object_state = self.get_object_state()
                 variable.robot_pose = self.compute_eef_pose()
-                variable.rgb_image = "source_img.npy"
+                variable.rgb_image = f"source_img_{self.task_name}_{self.s.getsockname()[1]}.npy"
                 image = self.obs['agentview_image']
-                np.save("source_img.npy", image)
+                np.save(f"source_img_{self.task_name}_{self.s.getsockname()[1]}.npy", image)
                 variable.message = "Ready"
                 # Pickle the object and send it to the server
                 data_string = pickle.dumps(variable)
@@ -446,21 +464,21 @@ class SourceRobot(Robot):
             state_dict = self.env.get_state()
             obs = deepcopy(self.obs)
             action = self.policy(ob=obs) # get action from policy   
-            
+
             # inpainted image
-            inpainted_image = np.load(f"inpaint_img.npy")
-            obs_copy = deepcopy(obs)
-            obs_copy["agentview_image"] = inpainted_image.transpose(2, 0, 1)
-            inpainted_img_action = self.policy(ob=obs_copy)
-            current_pose = self.compute_eef_pose()
-            transition = {
-                        'current_state': np.concatenate([current_pose, obs['robot0_gripper_qpos']]),
-                        'action': inpainted_img_action,
-                    }
-            inputs = torch.cat((torch.tensor(transition['current_state'], dtype=torch.float), torch.tensor(transition['action'], dtype=torch.float)), dim=-1).unsqueeze(0).to("cuda")
-    
-            predicted_state = self.forward_dynamics_model(inputs)
-            predicted_state = predicted_state.cpu().detach().numpy()
+            # inpainted_image = np.load(f"inpaint_img.npy")
+            # obs_copy = deepcopy(obs)
+            # obs_copy["agentview_image"] = inpainted_image.transpose(2, 0, 1)
+            # inpainted_img_action = self.policy(ob=obs_copy)
+            # current_pose = self.compute_eef_pose()
+            # transition = {
+            #             'current_state': np.concatenate([current_pose, obs['robot0_gripper_qpos']]),
+            #             'action': inpainted_img_action,
+            #         }
+            # inputs = torch.cat((torch.tensor(transition['current_state'], dtype=torch.float), torch.tensor(transition['action'], dtype=torch.float)), dim=-1).unsqueeze(0).to("cuda")
+
+            # predicted_state = self.forward_dynamics_model(inputs)
+            # predicted_state = predicted_state.cpu().detach().numpy()
     
             action, r, done, success = self.step(action, use_delta=self.control_delta, blocking=False)
             if success:
@@ -479,7 +497,7 @@ class SourceRobot(Robot):
                 variable.action = action
                 variable.object_state = self.get_object_state()
                 variable.robot_pose = self.compute_eef_pose()
-                variable.rgb_image = "source_img.npy"
+                variable.rgb_image = f"source_img_{self.task_name}.npy"
                 image = self.obs['agentview_image'].transpose(1, 2, 0) # convert to HWC
                 output = {"source_robot": {"rgb": image,
                                             "joint_angles": obs['robot0_joint_pos'],
@@ -487,16 +505,16 @@ class SourceRobot(Robot):
                                             "robot_eef_quat": obs['robot0_eef_quat'],
                                             "robot0_gripper_qpos": obs['robot0_gripper_qpos']
                                             },
-                          "inpainting": {"rgb": inpainted_image,
-                                         "predicted_action": inpainted_img_action,
-                                         "predicted_state": predicted_state,
-                          },
+                        #   "inpainting": {"rgb": inpainted_image,
+                        #                  "predicted_action": inpainted_img_action,
+                        #                  "predicted_state": predicted_state,
+                        #   },
                           "ground_truth": {
                               "action": action,
                               "target_state": self.compute_eef_pose()
                           }
                 }
-                np.save("source_img.npy", output)
+                np.save(f"source_img_{self.task_name}.npy", output)
                 variable.done = done
                 variable.success = success
                 variable.message = "Respond with Action"
