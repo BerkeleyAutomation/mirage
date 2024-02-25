@@ -14,12 +14,12 @@ class RobosuiteExperiment:
         self._source_process = None
         self._target_process = None
 
-    def get_pretty_config(self) -> str:
+    def get_config(self) -> ExperimentRobotsuiteConfig:
         """
-        Returns the pretty representation of the configuration, typically for printing to CLI.
+        Returns configuration used for the experiment.
         """
-        return self._config.__str__()
-    
+        return self._config
+
     def launch(self) -> None:
         """
         Launches the experiment
@@ -35,5 +35,6 @@ class RobosuiteExperiment:
     def get_results(self, blocking = False) -> None:
         """
         Returns the results of the experiment
+        :param blocking: If True, waits for the results to be available
         """
         pass
