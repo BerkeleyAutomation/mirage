@@ -2,13 +2,13 @@
 
 import rclpy
 from rclpy.node import Node
-import trimesh
-import open3d as o3d
 from std_msgs.msg import Header, Float64MultiArray,Bool
 from sensor_msgs.msg import PointCloud2, PointField, CameraInfo, Image
 import numpy as np
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
+import trimesh
+import open3d as o3d
 import os
 import glob
 import subprocess
@@ -39,9 +39,9 @@ class WriteData(Node):
         self.is_ready_ = False
         self.thetas_ = None
         self.debug_ = False
-        self.panda_urdf_ = "/home/lawrence/cross_embodiment_ws/src/gazebo_env/description/urdf/panda_ik_robosuite.urdf"        
+        self.panda_urdf_ = os.path.join(os.path.dirname(os.path.realpath(__file__)),'../../../../src/gazebo_env/description/urdf/panda_ik_robosuite.urdf')        
         self.panda_solver_ = TracIKSolver(self.panda_urdf_,"world","panda_ee")
-        self.ur5e_urdf_ = "/home/lawrence/cross_embodiment_ws/src/gazebo_env/description/urdf/ur5e_ik_robosuite.urdf"
+        self.ur5e_urdf_ = os.path.join(os.path.dirname(os.path.realpath(__file__)),'../../../../src/gazebo_env/description/urdf/ur5e_ik_robosuite.urdf')
         self.chain_ = kp.build_chain_from_urdf(open(self.panda_urdf_).read())
         self.ur5e_solver_ = TracIKSolver(self.ur5e_urdf_,"world","ur5e_ee_link")
 
@@ -81,8 +81,9 @@ class WriteData(Node):
         self.joint_state_msg = JointState()
 
         #Harcoding start position
-        self.q_init_ = np.array([-0.04536656 , 0.22302045, -0.01685448, -2.57859539,  0.02532237 , 2.93147512,0.83630218])
-        
+        # self.q_init_ = np.array([-0.04536656,  0.22302045, -0.01685448, -2.57859539,  0.02532237,  2.93147512, 0.83630218])
+        self.q_init_ = np.array([-0.0644708305,  0.528892205, -0.0626163565,  1.85382987, 0.0547194409,  0.614586870, -1.73115559])
+
         self.urdf_xacro_path_ = os.path.join(FindPackageShare(package="gazebo_env").find("gazebo_env"),"urdf","panda_arm_hand_only.urdf.xacro")
         xacro_command = "ros2 run xacro xacro " + self.urdf_xacro_path_
         xacro_subprocess = subprocess.Popen(
@@ -167,6 +168,7 @@ class WriteData(Node):
         self.full_mask_image_publisher_ = self.create_publisher(Image,"full_mask_image",1)
         self.updated_joints_ = False
         self.is_ready_ = True
+        print("WE READY")
     
     def gazeboCallback(self,joints,gazebo_rgb,gazebo_depth):
         joint_command_np = np.array(self.robosuite_qout_list_)
@@ -410,10 +412,10 @@ class WriteData(Node):
         robosuite_rgb_image_masked_inpaint = cv2.inpaint(robosuite_rgb_image_masked,robosuite_segmentation_mask_255,inpaintRadius=3,flags=cv2.INPAINT_TELEA)
         attempt = robosuite_rgb_image_masked_inpaint * joined_depth_argmin[:,:,np.newaxis]
         inverted_joined_depth_argmin = 1 - joined_depth_argmin
-        gazebo_robot_only_lab = cv2.cvtColor(gazebo_robot_only_rgb,cv2.COLOR_BGR2LAB)
-        gazebo_robot_only_lab[:,:,0] += 50
-        gazebo_robot_only_mod = cv2.cvtColor(gazebo_robot_only_lab,cv2.COLOR_LAB2BGR)
-        gazebo_robot_only_rgb = gazebo_robot_only_mod
+       # gazebo_robot_only_lab = cv2.cvtColor(gazebo_robot_only_rgb,cv2.COLOR_BGR2LAB)
+       # gazebo_robot_only_lab[:,:,0] += 50
+       # gazebo_robot_only_mod = cv2.cvtColor(gazebo_robot_only_lab,cv2.COLOR_LAB2BGR)
+       # gazebo_robot_only_rgb = gazebo_robot_only_mod
         attempt2 = gazebo_robot_only_rgb * inverted_joined_depth_argmin[:,:,np.newaxis]
         inpainted_image = attempt + attempt2
         image_8bit = cv2.convertScaleAbs(inpainted_image)  # Convert to 8-bit image
@@ -849,6 +851,8 @@ class WriteData(Node):
         ee_pose = ee_pose @ end_effector_rotation_with_no_translation
         scipy_rotation = R.from_matrix(ee_pose[:3,:3])
         scipy_quaternion = scipy_rotation.as_quat()
+        # import pdb
+        # pdb.set_trace()
         qout = self.panda_solver_.ik(ee_pose,qinit=self.q_init_)
         b_xyz = 1e-5
         b_rpy = 1e-3

@@ -24,9 +24,26 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
+import os
 
 def generate_launch_description():
+    # Set the path to the Gazebo ROS package
+    pkg_gazebo_ros = FindPackageShare(package='gazebo_ros').find('gazebo_ros')   
+    
+    # Set the path to this package.
+    pkg_share = FindPackageShare(package='gazebo_env').find('gazebo_env')
+    
+    # Set the path to the world file
+    world_file_name = 'no_shadow_sim.world'
+    world_path = os.path.join(pkg_share, 'worlds', world_file_name)
+
+    world = LaunchConfiguration('world')
+ 
+    declare_world_cmd = DeclareLaunchArgument(
+        name='world',
+        default_value=world_path,
+        description='Full path to the world model file to load')
+    
     # Declare arguments
     declared_arguments = []
     declared_arguments.append(
@@ -37,18 +54,14 @@ def generate_launch_description():
         )
     )
 
+    declared_arguments.append(declare_world_cmd)
+
     # Initialize Arguments
     gui = LaunchConfiguration("gui")
 
     gazebo_server = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [
-                PathJoinSubstitution(
-                    [FindPackageShare("gazebo_ros"), "launch", "gzserver.launch.py"]
-                )
-            ]
-        )
-    )
+    PythonLaunchDescriptionSource(os.path.join(pkg_gazebo_ros, 'launch', 'gzserver.launch.py')),
+    launch_arguments={'world': world}.items())
     gazebo_client = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [

@@ -14,7 +14,7 @@
     <!-- for some reason we have to modify the xyz because it is a little shifted-->
 
     <!-- Lift task-->
-    <origin xyz="0.516 0.018 11.749" rpy="0 0.7840421 3.1415927" /> 
+    <origin xyz="1.016 0.018 11.749" rpy="0 0.7840421 3.1415927" /> 
 
     <!-- Can task-->
     <!-- <origin xyz="1.016 0.018 11.749" rpy="0 0.7840421 3.1415927" />  -->
