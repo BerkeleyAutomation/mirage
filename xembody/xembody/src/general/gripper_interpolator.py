@@ -52,10 +52,6 @@ class GripperInterpolator:
             print("Returning angles")
             return -1 * gripper_angles
         
-        # if self.source_robot == "Panda" and self.target_robot == "UR5e": 
-        # # TODO: add this for real gripper mapping
-        #     return -0.05702400673569841 * gripper_angles + 0.02670973458948458
-        
         relevant_interpoolator = self.interpolators[(self.source_robot, self.target_robot)]
         regression_model = LinearRegression()
 
