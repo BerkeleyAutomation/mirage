@@ -5,7 +5,7 @@ Welcome to Mirage
    :toctree: generated   
    :recursive:
 
-   xembody
+   mirage
 
 
 Indices and tables
