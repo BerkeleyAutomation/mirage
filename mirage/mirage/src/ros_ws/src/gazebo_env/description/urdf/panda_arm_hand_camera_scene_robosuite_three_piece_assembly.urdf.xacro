@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="panda">
+  <xacro:include filename="$(find gazebo_env)/urdf/panda_arm.xacro"/>
+  <xacro:include filename="$(find gazebo_env)/urdf/hand_robosuite.xacro"/>
+  <link name="world" />
+  <!-- Lift task-->
+  <xacro:panda_arm connected_to="world" xyz="-0.56 0 10.912"/> 
+
+  <!-- Can task-->
+  <!-- <xacro:panda_arm connected_to="world" xyz="-0.56 -0.1 10.912"/>  -->
+  <xacro:hand ns="panda" rpy="0 0 ${-pi/4}" connected_to="panda_link8"/>
+  <xacro:include filename="$(find gazebo_env)/urdf/d435.urdf.xacro" />
+  <xacro:sensor_d435 parent="world">
+    <!-- for some reason we have to modify the xyz because it is a little shifted-->
+
+    <!-- Lift task-->
+    <origin xyz="0.769156924 0.01700004124 11.51694522" rpy="0.00000035078026  0.714229668 -3.14159260" /> 
+    <!-- Can task-->
+    <!-- <origin xyz="1.016 0.018 11.749" rpy="0 0.7840421 3.1415927" />  -->
+  </xacro:sensor_d435>
+  <gazebo>
+    <plugin name="no_physics" filename="libno_physics_plugin.so" />
+  </gazebo>
+  <gazebo>
+    <plugin name="panda_control" filename="libpanda_control_plugin.so" />
+  </gazebo>
+</robot>

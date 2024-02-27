@@ -1,0 +1,3 @@
+string depth_file
+string segmentation
+string joints
