@@ -1,4 +1,0 @@
-<launch>
-    <include file="$(find-pkg-share gazebo_env)/launch/ur5e_gazebo_classic.launch.py" />
-    <include file="$(find-pkg-share gazebo_env)/launch/ur5e_joint_pointcloud.launch.py" />
-</launch>
