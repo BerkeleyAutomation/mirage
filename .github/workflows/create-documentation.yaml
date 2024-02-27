@@ -32,7 +32,7 @@ jobs:
 
     - name: Build Documentation
       run: |
-        make -C docs/ html  # Assuming your Sphinx documentation is located in a directory named "docs"
+        make -C docs/ html
 
     - name: Upload Documentation Artifacts
       uses: actions/upload-artifact@v2

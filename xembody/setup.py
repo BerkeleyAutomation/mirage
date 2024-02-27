@@ -14,7 +14,7 @@ setup(
     packages=find_packages(include=['xembody', 'xembody.*']),
     install_requires=[
     ],
-    extra_requires={
+    extras_require={
         "docs": [
             "sphinx",
             "pydata-sphinx-theme"
