@@ -13,7 +13,7 @@ class RobosuiteExperiment:
         self._config = config
 
         # Check for config validity
-        self._config.validate()
+        self._config.validate_config()
 
         self._source_process = None
         self._target_process = None
@@ -24,12 +24,18 @@ class RobosuiteExperiment:
         """
         return self._config
 
-    def launch(self) -> None:
+    def launch(self, override=False) -> None:
         """
         Launches the experiment
         """
-        source_agent_args = ["python3", 
-                            "../policy_analysis/evaluate_policy_source_robot_server.py",
+        if not os.path.exists(self._config.results_folder):
+            os.makedirs(self._config.results_folder)
+        else:
+            if not override:
+                raise ValueError("Results folder already exists. Please delete the folder or set override to True")
+
+        source_agent_args = ["python3",
+                            "../evaluate_policy_demo_source_robot_server.py",
                             "--agent", self._config.source_agent_path,
                             "--n_rollouts", str(self._config.n_rollouts),
                             "--seeds", str(self._config.seed),
@@ -40,7 +46,7 @@ class RobosuiteExperiment:
                             "--save_stats_path", os.path.join(self._config.results_folder, "source.txt")
                             ]
         target_agent_args = ["python3", 
-                            "../policy_analysis/evaluate_policy_target_robot_server.py",
+                            "../evaluate_policy_demo_target_robot_client.py",
                             "--agent", self._config.target_agent_path,
                             "--n_rollouts", str(self._config.n_rollouts),
                             "--seeds", str(self._config.seed),

@@ -50,7 +50,7 @@ class ExperimentRobotsuiteConfig(ExperimentConfig):
     source_gripper_type: Optional[str] = None
     target_gripper_type: Optional[str] = None
 
-    def validate(self):
+    def validate_config(self):
         """
         Validates the configuration to see if the values are feasible.
         :throws ValueError: If the configuration is not valid.
