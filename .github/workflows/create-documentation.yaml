@@ -21,21 +21,20 @@ jobs:
       with:
         python-version: '3.8.18'
 
-    - name: Change to xembody Directory
-      run: cd xembody
-      working-directory: xembody
-
     - name: Install dependencies
+      working-directory: xembody
       run: |
         python -m pip install --upgrade pip
         pip install -e .[docs]
 
     - name: Build Documentation
+      working-directory: xembody
       run: |
         make -C docs/ html  # Assuming your Sphinx documentation is located in a directory named "docs"
 
     - name: Upload Documentation Artifacts
       uses: actions/upload-artifact@v2
+      working-directory: xembody
       with:
         name: docs
         path: docs/build/html  # Adjust this path if your Sphinx output is in a different directory
