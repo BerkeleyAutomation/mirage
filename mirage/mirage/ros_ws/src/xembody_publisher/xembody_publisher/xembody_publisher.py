@@ -1,4 +1,4 @@
-from xembody.src.general.ros_inpaint_publisher_sim import ROSInpaintPublisherSim
+from mirage.src.infra.ros_inpaint_publisher_sim import ROSInpaintPublisherSim
 import numpy as np
 import threading
 import os

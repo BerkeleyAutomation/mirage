@@ -1,10 +1,10 @@
 # The path to the model checkpoint for the source agent
 # Note: The agent determines the environment
 # Note: The type of observation of the policy matters, as inpainting will not run if the observation is lowdim
-source_agent_path: can_low_dim/20240123025005/models/model_epoch_250_PickPlaceCan_success_1.0.pth
+source_agent_path: /home/kdharmarajan/x-embody/mimicgen_environments/training_results/core/can/low_dim/trained_models/can_low_dim/20240123025005/models/model_epoch_250_PickPlaceCan_success_1.0.pth
 
 # Similar to source_agent_path, but for the target agent (typically both are the same)
-target_agent_path: can_low_dim/20240123025005/models/model_epoch_250_PickPlaceCan_success_1.0.pth
+target_agent_path: /home/kdharmarajan/x-embody/mimicgen_environments/training_results/core/can/low_dim/trained_models/can_low_dim/20240123025005/models/model_epoch_250_PickPlaceCan_success_1.0.pth
 
 # Number of rollouts done for evaluation
 n_rollouts: 1

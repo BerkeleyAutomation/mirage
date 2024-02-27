@@ -1,7 +1,7 @@
 import rclpy
 from sensor_msgs.msg import Image, PointCloud2
 from cv_bridge import CvBridge
-from xembody.src.general.xembody_publisher import XEmbodyPublisher
+from mirage.src.infra.xembody_publisher import XEmbodyPublisher
 from sensor_msgs.msg import PointCloud2, PointField, Image
 from input_filenames_msg.msg import MultipleInpaintImages
 import cv2

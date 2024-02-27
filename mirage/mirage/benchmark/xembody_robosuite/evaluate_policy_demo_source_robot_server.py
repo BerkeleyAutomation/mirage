@@ -22,7 +22,7 @@ from robomimic.algo import RolloutPolicy
 import robosuite.utils.transform_utils as T
 from robosuite.utils.mjcf_utils import array_to_string, string_to_array
 import robosuite.utils.camera_utils as camera_utils
-from mirage.src.general.gripper_interpolator import GripperInterpolator
+from mirage.mirage.src.gripper_interpolation.gripper_interpolator import GripperInterpolator
 
 TASK_OBJECT_DICT = {"Lift": ["cube_joint0"],
                     "NutAssemblySquare": ["SquareNut_joint0", "RoundNut_joint0"],

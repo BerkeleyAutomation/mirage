@@ -55,8 +55,8 @@ from omni.isaac.orbit.robots.single_arm import SingleArmManipulator
 from omni.isaac.orbit.utils.assets import ISAAC_NUCLEUS_DIR
 import omni.isaac.debug_draw._debug_draw as omni_debug_draw
 
-from xembody.src.orbit.orbit_renderer import OrbitRenderer
-from xembody.src.orbit.orbit_file_publisher import OrbitFilePublisher
+from mirage.src.orbit.orbit_renderer import OrbitRenderer
+from mirage.src.orbit.orbit_file_publisher import OrbitFilePublisher
 import matplotlib.pyplot as plt
 import open3d as o3d
 

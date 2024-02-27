@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from mirage.src.benchmark.experiment_config import ExperimentConfig
+from mirage.benchmark.experiment_config import ExperimentConfig
 from typing import Optional
 from prettytable import PrettyTable
 import yaml

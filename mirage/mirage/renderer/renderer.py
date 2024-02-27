@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from xembody.src.renderer.render_result import RenderResult
+from mirage.src.renderer.render_result import RenderResult
 
 class Renderer(ABC):
 

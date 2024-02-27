@@ -15,8 +15,6 @@ import robosuite.utils.camera_utils as camera_utils
 
 from evaluate_policy_demo_source_robot_server import Data, Robot
 
-
-
 class TargetRobot(Robot):
     def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=False, demo_path=None, inpaint_enabled=False, offline_eval=False, save_paired_images=False, save_paired_images_folder_path=None, use_diffusion=False, use_ros=False, diffusion_input=None, device=None, save_failed_demos=False, gripper_types=None, naive=None, save_stats_path=None):
         super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path, device=device, save_failed_demos=save_failed_demos, gripper_types=gripper_types, save_stats_path=save_stats_path)
@@ -39,10 +37,10 @@ class TargetRobot(Robot):
         if self.inpaint_enabled:
             if not self.offline_eval:
                 if self.use_ros:
-                    from xembody.src.general.ros_inpaint_publisher_sim import ROSInpaintPublisherSim
+                    from mirage.src.infra.ros_inpaint_publisher_sim import ROSInpaintPublisherSim
                     self.ros_inpaint_publisher = ROSInpaintPublisherSim()                    
                 if self.use_diffusion:
-                    from controlnet import ControlNet
+                    from mirage.mirage.src.diffusion.controlnet import ControlNet
                     self.controlnet = ControlNet()
                     assert self.diffusion_input is not None, "Please specify diffusion input: analytic/masked/target_robot"
                     assert self.diffusion_input in ["analytic", "masked", "target_robot"], "Unknown diffusion input type. Please specify diffusion input: analytic/masked/target_robot"
@@ -204,7 +202,7 @@ class TargetRobot(Robot):
                         ros_segmentation_mask = np.repeat(segmentation_mask[:,:,np.newaxis],3,axis=2).astype(np.uint8)
                         if self.use_ros:
                             print("Publishing")
-                            from xembody.src.general.ros_inpaint_publisher_sim import ROSInpaintSimData
+                            from mirage.src.infra.ros_inpaint_publisher_sim import ROSInpaintSimData
                             eef_pose = self.compute_eef_pose()
                             eef_pose_matrix = T.pose2mat((eef_pose[:3], eef_pose[3:]))
                             data = ROSInpaintSimData(ros_rgb_img, ros_depth_img, ros_segmentation_mask, eef_pose_matrix, obs['robot0_gripper_qpos'][-1:])

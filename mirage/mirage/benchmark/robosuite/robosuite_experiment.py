@@ -2,7 +2,7 @@ import subprocess
 import random
 import os
 
-from mirage.src.benchmark.robosuite.robosuite_experiment_config import ExperimentRobotsuiteConfig
+from mirage.benchmark.robosuite.robosuite_experiment_config import ExperimentRobotsuiteConfig
 
 class RobosuiteExperiment:
     """
@@ -35,7 +35,7 @@ class RobosuiteExperiment:
                 raise ValueError("Results folder already exists. Please delete the folder or set override to True")
 
         source_agent_args = ["python3",
-                            "../evaluate_policy_demo_source_robot_server.py",
+                            "evaluate_policy_demo_source_robot_server.py",
                             "--agent", self._config.source_agent_path,
                             "--n_rollouts", str(self._config.n_rollouts),
                             "--seeds", str(self._config.seed),
@@ -46,7 +46,7 @@ class RobosuiteExperiment:
                             "--save_stats_path", os.path.join(self._config.results_folder, "source.txt")
                             ]
         target_agent_args = ["python3", 
-                            "../evaluate_policy_demo_target_robot_client.py",
+                            "evaluate_policy_demo_target_robot_client.py",
                             "--agent", self._config.target_agent_path,
                             "--n_rollouts", str(self._config.n_rollouts),
                             "--seeds", str(self._config.seed),

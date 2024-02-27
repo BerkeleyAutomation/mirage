@@ -1,5 +1,5 @@
-from xembody.src.renderer.renderer import Renderer
-from xembody.src.renderer.render_result import RenderResult
+from mirage.src.renderer.renderer import Renderer
+from mirage.src.renderer.render_result import RenderResult
 
 from omni.isaac.orbit.sensors.camera import Camera, PinholeCameraCfg
 from omni.isaac.orbit.sensors.camera.utils import create_pointcloud_from_rgbd

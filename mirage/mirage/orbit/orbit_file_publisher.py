@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import pickle
-from xembody.src.general.xembody_publisher import XEmbodyPublisher
+from mirage.src.infra.xembody_publisher import XEmbodyPublisher
 
 class OrbitFilePublisher(XEmbodyPublisher):
     """

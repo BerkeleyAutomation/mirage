@@ -1,5 +1,5 @@
-from mirage.src.benchmark.robosuite.robosuite_experiment_config import ExperimentRobotsuiteConfig
-from mirage.src.benchmark.robosuite.robosuite_experiment import RobosuiteExperiment
+from mirage.benchmark.robosuite.robosuite_experiment_config import ExperimentRobotsuiteConfig
+from mirage.benchmark.robosuite.robosuite_experiment import RobosuiteExperiment
 
 import argparse
 

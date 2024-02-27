@@ -15,6 +15,8 @@ setup(
     install_requires=[
         "numpy",
         "pyyaml",
+        "prettytable",
+        "scikit-learn",
     ],
     extras_require={
         "docs": [
