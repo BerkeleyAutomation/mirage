@@ -2,33 +2,33 @@
 
 """
 # Mode 1: Target robot following the source robot
-python evaluate_policy_demo_target_robot_client.py --agent /home/lawrence/xembody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 1 --horizon 400 --seed 0 --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_low_dim_2.mp4 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name Sawyer --passive --connection
+python evaluate_policy_demo_target_robot_client.py --agent /home/kdharmarajan/x-embody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 1 --horizon 400 --seed 0 --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_low_dim_2.mp4 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name Sawyer --passive --connection
 
 # Mode 2: Target robot querying the source robot for actions
-python evaluate_policy_demo_target_robot_client.py --agent /home/lawrence/xembody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 1 --horizon 400 --seed 0 --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_low_dim_2.mp4 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name Sawyer --connection
+python evaluate_policy_demo_target_robot_client.py --agent /home/kdharmarajan/x-embody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 1 --horizon 400 --seed 0 --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_low_dim_2.mp4 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name Sawyer --connection
 
 # Mode 3: Demonstration playback
-python evaluate_policy_demo_target_robot_client.py --n_rollouts 100 --horizon 400 --seeds 0 --save_stats_path /home/lawrence/xembody/xembody/xembody_robosuite/demo_data_analysis/lift_lowdim_target_sawyer_0.015_300.txt  --connection --demo_path /home/lawrence/xembody/robomimic/datasets/lift/mh/demo_v141.hdf5 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name Sawyer --passive --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_demo_playback_2.mp4 
+python evaluate_policy_demo_target_robot_client.py --n_rollouts 100 --horizon 400 --seeds 0 --save_stats_path /home/kdharmarajan/x-embody/xembody/xembody_robosuite/demo_data_analysis/lift_lowdim_target_sawyer_0.015_300.txt  --connection --demo_path /home/kdharmarajan/x-embody/robomimic/datasets/lift/mh/demo_v141.hdf5 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name Sawyer --passive --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_demo_playback_2.mp4 
 
 # Mode 4: Target robot querying source robot policy based on inpainted images
 # 84x84 images
-python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject/20231203003603/models/model_epoch_350_Lift_success_0.98.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_target.mp4 --inpaint_enabled --offline_eval 
+python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject/20231203003603/models/model_epoch_350_Lift_success_0.98.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_inpaint_target.mp4 --inpaint_enabled --offline_eval 
 
 # 256x256 images
-python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_256/20231219024711/models/model_epoch_200_Lift_success_1.0.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_target.mp4 --inpaint_enabled --delta_action --use_diffusion --diffusion_input masked/analytic/target_robot --use_ros --offline_eval
+python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_256/20231219024711/models/model_epoch_200_Lift_success_1.0.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_inpaint_target.mp4 --inpaint_enabled --delta_action --use_diffusion --diffusion_input masked/analytic/target_robot --use_ros --offline_eval
 
 # Forward dynamics evaluation
-python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject/20231203003603/models/model_epoch_350_Lift_success_0.98.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_target.mp4 --inpaint_enabled
+python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject/20231203003603/models/model_epoch_350_Lift_success_0.98.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_inpaint_target.mp4 --inpaint_enabled
 
 # Mode 4 Sample Demo for 1
-python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 100 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_dataaug/20231209150046/models/model_epoch_200_Lift_success_1.0.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_inpaint_target_diffusion.mp4 --inpaint_enabled 
+python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 100 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_dataaug/20231209150046/models/model_epoch_200_Lift_success_1.0.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_inpaint_target_diffusion.mp4 --inpaint_enabled 
 
 
 # Mode 5: Generate paired dataset for diffusion model
-python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/lawrence/xembody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --tracking_error_threshold 0.02 --num_iter_max 200 --robot_name UR5e --save_paired_images --save_paired_images_folder_path /home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/diffusion_model_data/success_trajs_withpose
+python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --tracking_error_threshold 0.02 --num_iter_max 200 --robot_name UR5e --save_paired_images --save_paired_images_folder_path /home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/diffusion_model_data/success_trajs_withpose
 
 # Mode 6: Collect demonstration for UR5
-python evaluate_policy_demo_target_robot_client.py --agent /home/lawrence/xembody/robomimic/pretrained_models/lift_ph_image_epoch_500_succ_100.pth --n_rollouts 5 --horizon 400 --seed 0 --tracking_error_threshold 0.03 --num_iter_max 1 --robot_name UR5e --connection --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_low_dim_2.mp4 --dataset_path /home/lawrence/xembody/xembody/xembody_robosuite/target_robot_demonstration_data/lift_ur5e_5.hdf5 --dataset_obs
+python evaluate_policy_demo_target_robot_client.py --agent /home/kdharmarajan/x-embody/robomimic/pretrained_models/lift_ph_image_epoch_500_succ_100.pth --n_rollouts 5 --horizon 400 --seed 0 --tracking_error_threshold 0.03 --num_iter_max 1 --robot_name UR5e --connection --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_low_dim_2.mp4 --dataset_path /home/kdharmarajan/x-embody/xembody/xembody_robosuite/target_robot_demonstration_data/lift_ur5e_5.hdf5 --dataset_obs
 """
 
 
@@ -64,8 +64,8 @@ from evaluate_policy_demo_source_robot_server import Data, Robot
 
 
 class TargetRobot(Robot):
-    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=False, demo_path=None, inpaint_enabled=False, offline_eval=False, save_paired_images=False, save_paired_images_folder_path=None, use_diffusion=False, use_ros=False, diffusion_input=None, device=None, save_failed_demos=False):
-        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path, device=device, save_failed_demos=save_failed_demos)
+    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=False, demo_path=None, inpaint_enabled=False, offline_eval=False, save_paired_images=False, save_paired_images_folder_path=None, use_diffusion=False, use_ros=False, diffusion_input=None, device=None, save_failed_demos=False, gripper_types=None, naive=None):
+        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path, device=device, save_failed_demos=save_failed_demos, gripper_types=gripper_types)
         
         if connection:
             HOST = 'localhost'
@@ -77,6 +77,7 @@ class TargetRobot(Robot):
             self.s = None
             
         self.passive = passive
+        self.naive = naive
         
         self.offline_eval = offline_eval
         self.use_diffusion = use_diffusion
@@ -86,7 +87,7 @@ class TargetRobot(Robot):
             if not self.offline_eval:
                 if self.use_ros:
                     from xembody.src.general.ros_inpaint_publisher_sim import ROSInpaintPublisherSim
-                    self.ros_inpaint_publisher = ROSInpaintPublisherSim()
+                    self.ros_inpaint_publisher = ROSInpaintPublisherSim()                    
                 if self.use_diffusion:
                     from controlnet import ControlNet
                     self.controlnet = ControlNet()
@@ -258,8 +259,8 @@ class TargetRobot(Robot):
                         }
                     }
                     
-                    cv2.imwrite("/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/rgb.png", cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR) * 255)
-                    # cv2.imwrite("/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/rgb.png", cv2.cvtColor(np.array(Image.fromarray(ros_rgb_img).resize((84, 84))).astype(np.float32) / 255.0, cv2.COLOR_RGB2BGR) * 255)
+                    cv2.imwrite("/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/rgb.png", cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR) * 255)
+                    # cv2.imwrite("/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/rgb.png", cv2.cvtColor(np.array(Image.fromarray(ros_rgb_img).resize((84, 84))).astype(np.float32) / 255.0, cv2.COLOR_RGB2BGR) * 255)
                     
                     if not self.offline_eval:
                         inpainted_image = np.zeros((256, 256, 3), dtype=np.uint8)                        
@@ -278,7 +279,10 @@ class TargetRobot(Robot):
                             inpainted_image = self.ros_inpaint_publisher.get_inpainted_image(True)
                             inpainted_image = inpainted_image.astype(np.float32) / 255.0
                             print("Received inpainted image")
-                            # inpainted_image = cv2.cvtColor(inpainted_image, cv2.COLOR_BGR2RGB)                        
+                            # inpainted_image = cv2.cvtColor(inpainted_image, cv2.COLOR_BGR2RGB)
+
+                        if self.naive:
+                            inpainted_image = rgb_img                     
                         
                         if self.use_diffusion:
                             if self.diffusion_input == "target_robot":
@@ -298,13 +302,13 @@ class TargetRobot(Robot):
                                     segmentation_mask_source_robot = source_robot_info["ground_truth"]["segmentation_mask"]
                                     masked_image = mask_rgb_image(rgb_img, segmentation_mask_target_robot, segmentation_mask_source_robot)
                                 diffusion_input = masked_image.copy()
-                                cv2.imwrite("/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/masked_image.png", cv2.cvtColor(masked_image, cv2.COLOR_RGB2BGR) * 255)
+                                cv2.imwrite("/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/masked_image.png", cv2.cvtColor(masked_image, cv2.COLOR_RGB2BGR) * 255)
                                 inpainted_image_256, inpainted_image_84 = self.controlnet.inpaint(masked_image)
                             
                             inpainted_image = inpainted_image_256
                     else:
-                        # inpainted_image = plt.imread(f"/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/data/diffusion/inpainted_image_{step_i}.png")
-                        inpainted_image = plt.imread(f"/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/data/results_color_threshold_skimage4/inpaint0.png")
+                        # inpainted_image = plt.imread(f"/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/data/diffusion/inpainted_image_{step_i}.png")
+                        inpainted_image = plt.imread(f"/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/data/results_color_threshold_skimage4/inpaint0.png")
                     np.save(self.inpainted_img_path, inpainted_image, allow_pickle=True)
                     if self.use_diffusion:
                         np.save(self.diffusion_model_input_path, diffusion_input, allow_pickle=True)
@@ -368,7 +372,10 @@ class TargetRobot(Robot):
                     if self.inpaint_enabled:
                         inpaint_action = timestep_info_dict["source_robot"]["inpainting"]["predicted_state"][:7] # only get position and quarternion of the target state and not the gripper part
                         inpaint_action = np.concatenate([inpaint_action, timestep_info_dict["source_robot"]["inpainting"]["predicted_action"][-1:]])
-    
+
+                        inpaint_action = timestep_info_dict["source_robot"]["ground_truth"]["target_state"][:7] # only get position and quarternion of the target state and not the gripper part
+                        inpaint_action = np.concatenate([inpaint_action, timestep_info_dict["source_robot"]["inpainting"]["predicted_action"][-1:]])
+
                         predicted_state_with_gt_action = np.concatenate([timestep_info_dict["source_robot"]["inpainting"]["predicted_state_from_gt"][:7], action[-1:]])
                         
                         timestep_info_dict["ground_truth_action"] = action
@@ -377,7 +384,7 @@ class TargetRobot(Robot):
                         if not self.offline_eval:
                             print("Inpaint action: ", inpaint_action)
                             print("Ground truth action: ", action)
-                            # action = inpaint_action
+                            action = inpaint_action
                             print("Use predicted_state_with_gt_action action")
                             # print("Predicted from gt action: ", predicted_state_with_gt_action)
                             action = predicted_state_with_gt_action
@@ -742,11 +749,22 @@ if __name__ == "__main__":
         action='store_true',
         help="Set this to true to also save demos that failed",
     )
+    parser.add_argument(
+        "--gripper",
+        type=str,
+        default=None,
+        help="provide the name of the gripper to be used, such as PandaGripper or Robotiq85Gripper"
+    )
+    parser.add_argument(
+        "--naive",
+        action='store_true',
+        help="Set this to true to use naive (no inpainting)",
+    )
     args = parser.parse_args()
     
     
    
     time.sleep(4) # wait for the server to start
-    target_robot = TargetRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, offline_eval=args.offline_eval, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, use_diffusion=args.use_diffusion, use_ros=args.use_ros, diffusion_input=args.diffusion_input, device=args.device, save_failed_demos=args.save_failed_demos)
+    target_robot = TargetRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, offline_eval=args.offline_eval, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, use_diffusion=args.use_diffusion, use_ros=args.use_ros, diffusion_input=args.diffusion_input, device=args.device, save_failed_demos=args.save_failed_demos, gripper_types=args.gripper, naive=args.naive)
     target_robot.run_experiments(seeds=args.seeds, rollout_num_episodes=args.n_rollouts, video_skip=args.video_skip, camera_names=args.camera_names, dataset_obs=args.dataset_obs, save_stats_path=args.save_stats_path, tracking_error_threshold=args.tracking_error_threshold, num_iter_max=args.num_iter_max, target_robot_delta_action=args.delta_action, inpaint_online_eval=not target_robot.offline_eval)
 
