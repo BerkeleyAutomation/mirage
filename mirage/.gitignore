@@ -1,0 +1,20 @@
+mirage.egg-info
+meshes
+obj_meshes
+
+# imgs and point clouds
+*.jpg
+*.pcd
+*.png
+
+# no datasets
+*.hdf5
+
+# no ROS Workspace build / install /log
+mirage/src/ros_ws/build
+mirage/src/ros_ws/install
+mirage/src/ros_ws/log
+
+# no models
+*.pt
+*.pth

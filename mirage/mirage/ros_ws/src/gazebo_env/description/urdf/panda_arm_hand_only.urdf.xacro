@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="panda">
+  <xacro:include filename="$(find gazebo_env)/urdf/panda_arm.xacro"/>
+  <xacro:include filename="$(find gazebo_env)/urdf/hand.xacro"/>
+  <link name="world" />
+  <xacro:panda_arm connected_to="world"/>
+  <xacro:hand ns="panda" rpy="0 0 ${-pi/4}" connected_to="panda_link8"/>
+  <gazebo>
+    <plugin name="no_physics" filename="libno_physics_plugin.so" />
+  </gazebo>
+</robot>

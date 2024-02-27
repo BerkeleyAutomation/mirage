@@ -30,7 +30,7 @@ conda create --name mirage python=3.8
 
 Install the mirage Python package.
 ```
-cd xembody
+cd mirage
 pip install -e .
 ```
 
@@ -39,7 +39,7 @@ Follow the installation instructions for the given simulator by going into the f
 ## Usage
 For robosuite, to run an experiment, 
 ```
-cd xembody/xembody_robosuite/benchmark
+cd mirage/benchmark/robosuite
 python3 run_robosuite_benchmark.py --config_file config/example_config.yaml
 ```
 Please take a look at the example_config and the different parameters that can be set to run different tasks, agents, and robots. For the above code to work, you must change the agents to the path for the model checkpoints in robosuite.
