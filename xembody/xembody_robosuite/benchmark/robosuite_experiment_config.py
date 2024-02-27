@@ -1,7 +1,8 @@
 from dataclasses import dataclass
-from xembody.benchmark.experiment_config import ExperimentConfig
+from xembody.src.benchmark.experiment_config import ExperimentConfig
 from typing import Optional
 from prettytable import PrettyTable
+import yaml
 
 @dataclass
 class ExperimentRobotsuiteConfig(ExperimentConfig):
@@ -37,6 +38,9 @@ class ExperimentRobotsuiteConfig(ExperimentConfig):
     # Diffusion related configuration
     use_diffusion: bool
     diffusion_input_type: str
+
+    # Results folder
+    results_folder: str
 
     # Optional video paths for source and target
     source_video_path: Optional[str] = None
@@ -101,3 +105,38 @@ class ExperimentRobotsuiteConfig(ExperimentConfig):
         table.add_row(["Source Gripper Type", self.source_gripper_type])
         table.add_row(["Target Gripper Type", self.target_gripper_type])
         return table.get_formatted_string()
+    
+    @staticmethod
+    def from_yaml(yaml_file: str):
+        """
+        Creates an ExperimentRobotsuiteConfig from a yaml file.
+        """
+        # TODO(kdharmarajan): Add validation for the file and provide more meaningful error messages.
+        with open(yaml_file, 'r') as file:
+            config = yaml.safe_load(file)
+            return ExperimentRobotsuiteConfig(
+                source_agent_path=config["source_agent_path"],
+                target_agent_path=config["target_agent_path"],
+                n_rollouts=config["n_rollouts"],
+                horizon=config["horizon"],
+                seed=config["seed"],
+                passive=config["passive"],
+                connection=config["connection"],
+                source_robot_name=config["source_robot_name"],
+                target_robot_name=config["target_robot_name"],
+                source_tracking_error_threshold=config["source_tracking_error_threshold"],
+                target_tracking_error_threshold=config["target_tracking_error_threshold"],
+                source_num_iter_max=config["source_num_iter_max"],
+                target_num_iter_max=config["target_num_iter_max"],
+                delta_action=config["delta_action"],
+                enable_inpainting=config["enable_inpainting"],
+                use_ros=config["use_ros"],
+                offline_eval=config["offline_eval"],
+                use_diffusion=config["use_diffusion"],
+                diffusion_input_type=config["diffusion_input_type"],
+                results_folder=config["results_folder"],
+                source_video_path=config.get("source_video_path"),
+                target_video_path=config.get("target_video_path"),
+                source_gripper_type=config.get("source_gripper_type"),
+                target_gripper_type=config.get("target_gripper_type")
+            )

@@ -10,5 +10,5 @@ setup(
     version='0.1',
     description='Repo for xembody',
     package_dir = {'': '.'},
-    packages=find_packages(include=['xembody', 'xembody.*'])
+    packages=find_packages(include=['xembody', 'xembody.*', 'xembody_robosuite', 'xembody_robosuite.*']),
 )
