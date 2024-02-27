@@ -1,42 +1,3 @@
-
-
-"""
-# Mode 1: Target robot following the source robot
-python evaluate_policy_demo_source_robot_server.py --agent /home/kdharmarajan/x-embody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 1 --seeds 0 --connection --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_low_dim_1.mp4 
-
-# Mode 2: Target robot querying the source robot for actions
-python evaluate_policy_demo_source_robot_server.py --agent /home/kdharmarajan/x-embody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 1 --horizon 400 --seeds 0 --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_low_dim_1.mp4 --connection --passive 
-
-# Mode 3: Demonstration playback
-python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 400 --seeds 0 --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_demo_playback_1.mp4 --connection --demo_path /home/kdharmarajan/x-embody/robomimic/datasets/lift/mh/demo_v141.hdf5 
-
-python evaluate_policy_demo_source_robot_server.py --n_rollouts 100 --horizon 400 --seeds 0 --connection --demo_path /home/kdharmarajan/x-embody/robomimic/datasets/lift/mh/demo_v141.hdf5 --save_stats_path /home/kdharmarajan/x-embody/xembody/xembody_robosuite/demo_data_analysis/lift_lowdim_source_sawyer_0.015_300.txt --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_demo_playback_1.mp4 
-
-# Mode 4: Target robot querying source robot policy based on inpainted images
-# 84x84 images
-python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject/20231203003603/models/model_epoch_350_Lift_success_0.98.pth --passive --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_inpaint_source.mp4 --tracking_error_threshold 0.02 --num_iter_max 300 --inpaint_enabled 
-
-# 256x256 images
-python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_256/20231219024711/models/model_epoch_200_Lift_success_1.0.pth --passive --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_inpaint_source.mp4 --tracking_error_threshold 0.02 --num_iter_max 300 --inpaint_enabled 
-
-# Forward dynamics evaluation
-# Linear Regression
-python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject/20231203003603/models/model_epoch_350_Lift_success_0.98.pth --passive --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_inpaint_source.mp4 --tracking_error_threshold 0.02 --num_iter_max 300 --inpaint_enabled --forward_dynamics_model_path /home/kdharmarajan/x-embody/robomimic/forward_dynamics_linear_reg/forward_dynamics_model.pkl
-
-# Mode 4 Sample Demo for 1
-python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 100 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_dataaug/20231209150046/models/model_epoch_200_Lift_success_1.0.pth --passive --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_inpaint_source_diffusion.mp4 --tracking_error_threshold 0.02 --num_iter_max 300 --inpaint_enabled 
-
-
-# Mode 5: Generate paired dataset for diffusion model
-python evaluate_policy_demo_source_robot_server.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth  --passive --save_paired_images --save_paired_images_folder_path /home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/diffusion_model_data/success_trajs_withpose --tracking_error_threshold 0.02
-
-# Mode 6: Collect demonstration for UR5
-python evaluate_policy_demo_source_robot_server.py --agent /home/kdharmarajan/x-embody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 5 --horizon 400 --seeds 0 --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_low_dim_1.mp4 --connection --passive 
-"""
-
-
-
-
 from PIL import Image
 import argparse
 import json
@@ -90,7 +51,7 @@ class Data:
 tracking_error_history = []
 
 class Robot:
-    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, demo_path=None, inpaint_enabled=False, save_paired_images=False, save_paired_images_folder_path=None, device=None, save_failed_demos=False, gripper_types=None):
+    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, demo_path=None, inpaint_enabled=False, save_paired_images=False, save_paired_images_folder_path=None, device=None, save_failed_demos=False, gripper_types=None, save_stats_path=None):
         """_summary_
 
         Args:
@@ -115,6 +76,7 @@ class Robot:
         self.inpaint_writer = imageio.get_writer(os.path.join(os.path.dirname(self.video_path), "inpaint_video.mp4"), fps=20) if self.video_writer is not None else None
         self.save_failed_demos = save_failed_demos
         self.gripper_types = gripper_types
+        self.save_stats_path = os.path.dirname(save_stats_path)
 
         self.inpaint_enabled = inpaint_enabled
         self.save_paired_images = save_paired_images
@@ -122,13 +84,13 @@ class Robot:
         if self.inpaint_enabled:
             base_path = os.path.basename(ckpt_path).split(".")[0]
 
-            self.groundtruth_and_inpaintedprediction_path = f"/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/groundtruth_source_img_{base_path}.npy"
-            self.inpainted_img_path = f"/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/inpainted_img_{base_path}.npy"
-            self.inpainted_rgb_img_path = f"/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/inpainted_rgb_img_{base_path}_{gripper_types}.jpg"
-            self.inpaint_data_for_analysis_path = f"/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/inpaint_data_for_analysis_{base_path}_{gripper_types}.npy"
-            self.inpaint_data_for_analysis_path_temp = f"/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/inpaint_data_for_analysis_temp_{base_path}_{gripper_types}.npy"
-            self.diffusion_model_input_path = f"/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/diffusion_model_input_{base_path}_{gripper_types}.npy"
-            self.inpaint_data_for_analysis_path = "/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/inpaint_ur5_offline_data.npy"
+            self.groundtruth_and_inpaintedprediction_path = f"{self.save_stats_path}/groundtruth_source_img_{base_path}.npy"
+            self.inpainted_img_path = f"{self.save_stats_path}/inpainted_img_{base_path}.npy"
+            self.inpainted_rgb_img_path = f"{self.save_stats_path}/inpainted_rgb_img_{base_path}_{gripper_types}.jpg"
+            self.inpaint_data_for_analysis_path = f"{self.save_stats_path}/inpaint_data_for_analysis_{base_path}_{gripper_types}.npy"
+            self.inpaint_data_for_analysis_path_temp = f"{self.save_stats_path}/inpaint_data_for_analysis_temp_{base_path}_{gripper_types}.npy"
+            self.diffusion_model_input_path = f"{self.save_stats_path}/diffusion_model_input_{base_path}_{gripper_types}.npy"
+            self.inpaint_data_for_analysis_path = f"{self.save_stats_path}/inpaint_ur5_offline_data.npy"
 
         if self.save_paired_images:
             assert save_paired_images_folder_path is not None, "Please specify save_paired_images_folder_path"
@@ -149,7 +111,6 @@ class Robot:
 
         # create environment from saved checkpoint
         self.device = TorchUtils.get_torch_device(try_to_use_cuda=True) if device is None else device
-        # breakpoint()
         if self.use_demo:
             env_meta = FileUtils.get_env_metadata_from_dataset(dataset_path=self.hdf5_path)
             self.env = EnvUtils.create_env_for_data_processing(
@@ -504,8 +465,8 @@ class Robot:
 
 
 class SourceRobot(Robot):
-    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=True, demo_path=None, inpaint_enabled=False, forward_dynamics_model_path='/home/kdharmarajan/x-embody/robomimic/forward_dynamics/forward_dynamics_bc_img_300.pth', save_paired_images=False, save_paired_images_folder_path=None, device=None, save_failed_demos=False, naive=False):
-        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path, device=device, save_failed_demos=save_failed_demos)
+    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=True, demo_path=None, inpaint_enabled=False, forward_dynamics_model_path='', save_paired_images=False, save_paired_images_folder_path=None, device=None, save_failed_demos=False, naive=False, save_stats_path=None):
+        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path, device=device, save_failed_demos=save_failed_demos, save_stats_path=save_stats_path)
         
         if connection:
             HOST = 'localhost'
@@ -530,7 +491,7 @@ class SourceRobot(Robot):
 
         self.naive = naive
         if self.naive:
-            self.interpolator = GripperInterpolator('Panda', robot_name, ['/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/gripper_interpolation_results_no_task_diff.pkl'])
+            self.interpolator = GripperInterpolator('Panda', robot_name, [f'{self.save_stats_path}/gripper_interpolation_results_no_task_diff.pkl'])
         
     def rollout_robot(self, video_skip=5, return_obs=False, camera_names=None, set_object_state=False, set_robot_pose=False, tracking_error_threshold=0.003, num_iter_max=100, target_robot_delta_action=False, demo_index=0):
         """
@@ -585,46 +546,26 @@ class SourceRobot(Robot):
             self.policy.start_episode()
             self.initialize_robot()
             
-        if False: #self.passive:
-            # the source robot needs to be first initialized to the target object state and target robot pose
-            # before the target robot can start executing the policy
-            # receive target object state and target robot pose from target robot
-            if self.conn is not None:
-                data = self.conn.recv(4096)
-                target_env_robot_state = pickle.loads(data)
-                # print("Receiving target object state and target robot pose from target robot")
-                
-                self.set_object_state(set_to_target_object_state=target_env_robot_state.object_state)
-                self.drive_robot_to_target_pose(target_env_robot_state.robot_pose)
-                
-                # tell the target robot that the source robot is ready
-                # Create an instance of Data() to send to client.
-                variable = Data()
-                variable.message = "Ready"
-                # Pickle the object and send it to the server
-                data_string = pickle.dumps(variable)
-                self.conn.send(data_string)
-        else:
-            # the source robot is ready to execute the policy
-            if self.conn is not None:
-                # tell the target robot that the source robot is ready
-                # Create an instance of Data() to send to client.
-                variable = Data()
-                variable.object_state = self.get_object_state()
-                variable.robot_pose = self.compute_eef_pose()
-                variable.message = "Ready"
-                # Pickle the object and send it to the server
-                data_string = pickle.dumps(variable)
-                message_length = struct.pack("!I", len(data_string))
-                self.conn.send(message_length)
-                self.conn.send(data_string)
-                # confirm that the target robot is ready
-                pickled_message_size = self._receive_all_bytes(4)
-                message_size = struct.unpack("!I", pickled_message_size)[0]
-                data = self._receive_all_bytes(message_size)
-                target_env_robot_state = pickle.loads(data)
-                # print("Receiving target object state and target robot pose from target robot")
-                assert target_env_robot_state.message == "Ready", "Target robot is not ready"
+        # the source robot is ready to execute the policy
+        if self.conn is not None:
+            # tell the target robot that the source robot is ready
+            # Create an instance of Data() to send to client.
+            variable = Data()
+            variable.object_state = self.get_object_state()
+            variable.robot_pose = self.compute_eef_pose()
+            variable.message = "Ready"
+            # Pickle the object and send it to the server
+            data_string = pickle.dumps(variable)
+            message_length = struct.pack("!I", len(data_string))
+            self.conn.send(message_length)
+            self.conn.send(data_string)
+            # confirm that the target robot is ready
+            pickled_message_size = self._receive_all_bytes(4)
+            message_size = struct.unpack("!I", pickled_message_size)[0]
+            data = self._receive_all_bytes(message_size)
+            target_env_robot_state = pickle.loads(data)
+            # print("Receiving target object state and target robot pose from target robot")
+            assert target_env_robot_state.message == "Ready", "Target robot is not ready"
         
         # Save the ground truth so that the target robot can use it even before it does its first step
         if self.inpaint_enabled:
@@ -730,26 +671,13 @@ class SourceRobot(Robot):
                 #     obs_copy['robot0_gripper_qpos'] = gripper_angles
 
                 action = self.policy(ob=obs_copy) # get action from policy
-                gt_action = action.copy()
-            
-            # add noise for data collection
-            # if self.save_paired_images:
-            #     # with probability 0.5, add noise to the action
-            #     if np.random.rand() < 0.5:
-            #         print(action)
-            #         # std in the translation components: 0.6, std in the rotation components: 0.5
-            #         action[:3] += np.random.normal(0, 0.6, 3)
-            #         action[3:6] += np.random.normal(0, 0.5, 3)
-            #         # for gripper, 50% of the time, flip the gripper action
-            #         if np.random.rand() < 0.5:
-            #             action[-1] = 1 - action[-1]
-                    
+                gt_action = action.copy()                    
             
             if self.inpaint_enabled:
                 # ground truth
                 rgb_img = obs['agentview_image']
                 rgb_img = rgb_img.transpose(1, 2, 0)
-                cv2.imwrite("/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/groundtruth.png", cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR) * 255)
+                cv2.imwrite(f"{self.save_stats_path}/groundtruth.png", cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR) * 255)
                 # inpainted image
                 # diffusion_model_input = np.load(self.diffusion_model_input_path)
                 inpainted_image = np.load(self.inpainted_img_path, allow_pickle=True)
@@ -1139,6 +1067,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    source_robot = SourceRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, seed=None, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, forward_dynamics_model_path=args.forward_dynamics_model_path, device=args.device, save_failed_demos=args.save_failed_demos)
+    source_robot = SourceRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, seed=None, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, forward_dynamics_model_path=args.forward_dynamics_model_path, device=args.device, save_failed_demos=args.save_failed_demos, save_stats_path=args.save_stats_path)
     source_robot.run_experiments(seeds=args.seeds, rollout_num_episodes=args.n_rollouts, video_skip=args.video_skip, camera_names=args.camera_names, dataset_obs=args.dataset_obs, save_stats_path=args.save_stats_path, tracking_error_threshold=args.tracking_error_threshold, num_iter_max=args.num_iter_max, inpaint_online_eval=args.inpaint_enabled)
 

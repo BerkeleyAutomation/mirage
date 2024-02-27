@@ -1,62 +1,16 @@
-
-
-"""
-# Mode 1: Target robot following the source robot
-python evaluate_policy_demo_target_robot_client.py --agent /home/kdharmarajan/x-embody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 1 --horizon 400 --seed 0 --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_low_dim_2.mp4 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name Sawyer --passive --connection
-
-# Mode 2: Target robot querying the source robot for actions
-python evaluate_policy_demo_target_robot_client.py --agent /home/kdharmarajan/x-embody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --n_rollouts 1 --horizon 400 --seed 0 --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_low_dim_2.mp4 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name Sawyer --connection
-
-# Mode 3: Demonstration playback
-python evaluate_policy_demo_target_robot_client.py --n_rollouts 100 --horizon 400 --seeds 0 --save_stats_path /home/kdharmarajan/x-embody/xembody/xembody_robosuite/demo_data_analysis/lift_lowdim_target_sawyer_0.015_300.txt  --connection --demo_path /home/kdharmarajan/x-embody/robomimic/datasets/lift/mh/demo_v141.hdf5 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name Sawyer --passive --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_demo_playback_2.mp4 
-
-# Mode 4: Target robot querying source robot policy based on inpainted images
-# 84x84 images
-python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject/20231203003603/models/model_epoch_350_Lift_success_0.98.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_inpaint_target.mp4 --inpaint_enabled --offline_eval 
-
-# 256x256 images
-python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_256/20231219024711/models/model_epoch_200_Lift_success_1.0.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_inpaint_target.mp4 --inpaint_enabled --delta_action --use_diffusion --diffusion_input masked/analytic/target_robot --use_ros --offline_eval
-
-# Forward dynamics evaluation
-python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject/20231203003603/models/model_epoch_350_Lift_success_0.98.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_inpaint_target.mp4 --inpaint_enabled
-
-# Mode 4 Sample Demo for 1
-python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 100 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/bc_trained_models/vanilla_bc_img_agentview_noobject_dataaug/20231209150046/models/model_epoch_200_Lift_success_1.0.pth --tracking_error_threshold 0.02 --num_iter_max 300 --robot_name UR5e --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_inpaint_target_diffusion.mp4 --inpaint_enabled 
-
-
-# Mode 5: Generate paired dataset for diffusion model
-python evaluate_policy_demo_target_robot_client.py --n_rollouts 1 --horizon 400 --seeds 0 --connection --port 30210 --agent /home/kdharmarajan/x-embody/robomimic/pretrained_models/lift_ph_low_dim_epoch_1000_succ_100.pth --tracking_error_threshold 0.02 --num_iter_max 200 --robot_name UR5e --save_paired_images --save_paired_images_folder_path /home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/diffusion_model_data/success_trajs_withpose
-
-# Mode 6: Collect demonstration for UR5
-python evaluate_policy_demo_target_robot_client.py --agent /home/kdharmarajan/x-embody/robomimic/pretrained_models/lift_ph_image_epoch_500_succ_100.pth --n_rollouts 5 --horizon 400 --seed 0 --tracking_error_threshold 0.03 --num_iter_max 1 --robot_name UR5e --connection --video_path /home/kdharmarajan/x-embody/robosuite/collected_data/output_lift_low_dim_2.mp4 --dataset_path /home/kdharmarajan/x-embody/xembody/xembody_robosuite/target_robot_demonstration_data/lift_ur5e_5.hdf5 --dataset_obs
-"""
-
-
-
 from PIL import Image
 import argparse
-import json
-import h5py
-import imageio
 import struct
 import numpy as np
 from copy import deepcopy
 import socket, pickle
-from scipy.spatial.transform import Rotation
-import torch
 import time
 import cv2
 import os
-import matplotlib.pyplot as plt
-import robomimic
-import robomimic.utils.file_utils as FileUtils
-import robomimic.utils.torch_utils as TorchUtils
 import robomimic.utils.tensor_utils as TensorUtils
 import robomimic.utils.obs_utils as ObsUtils
 from robomimic.envs.env_base import EnvBase
-from robomimic.algo import RolloutPolicy
 import robosuite.utils.transform_utils as T
-from robosuite.utils.mjcf_utils import array_to_string, string_to_array
 import robosuite.utils.camera_utils as camera_utils
 
 from evaluate_policy_demo_source_robot_server import Data, Robot
@@ -64,15 +18,14 @@ from evaluate_policy_demo_source_robot_server import Data, Robot
 
 
 class TargetRobot(Robot):
-    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=False, demo_path=None, inpaint_enabled=False, offline_eval=False, save_paired_images=False, save_paired_images_folder_path=None, use_diffusion=False, use_ros=False, diffusion_input=None, device=None, save_failed_demos=False, gripper_types=None, naive=None):
-        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path, device=device, save_failed_demos=save_failed_demos, gripper_types=gripper_types)
+    def __init__(self, robot_name=None, ckpt_path=None, render=False, video_path=None, rollout_horizon=None, seed=None, dataset_path=None, connection=None, port = 50007, passive=False, demo_path=None, inpaint_enabled=False, offline_eval=False, save_paired_images=False, save_paired_images_folder_path=None, use_diffusion=False, use_ros=False, diffusion_input=None, device=None, save_failed_demos=False, gripper_types=None, naive=None, save_stats_path=None):
+        super().__init__(robot_name=robot_name, ckpt_path=ckpt_path, render=render, video_path=video_path, rollout_horizon=rollout_horizon, seed=seed, dataset_path=dataset_path, demo_path=demo_path, inpaint_enabled=inpaint_enabled, save_paired_images=save_paired_images, save_paired_images_folder_path=save_paired_images_folder_path, device=device, save_failed_demos=save_failed_demos, gripper_types=gripper_types, save_stats_path=save_stats_path)
         
         if connection:
             HOST = 'localhost'
             PORT = port
             self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.s.connect((HOST, PORT))
-            # self.s.settimeout(3)
         else:
             self.s = None
             
@@ -135,45 +88,27 @@ class TargetRobot(Robot):
             os.makedirs(os.path.join(self.save_paired_images_folder_path, "{}_joint_gripper_pose".format(self.robot_name.lower()), str(demo_index)), exist_ok=True)
             os.makedirs(os.path.join(self.save_paired_images_folder_path, "{}_depth".format(self.robot_name.lower()), str(demo_index)), exist_ok=True)
         
-        if True: #self.passive:
-            # the target robot needs to be first initialized to the source object state and source robot pose
-            # receive source object state and source robot pose from source robot
-            if self.s is not None:
-                pickled_message_size = self._receive_all_bytes(4)
-                message_size = struct.unpack("!I", pickled_message_size)[0]
-                data = self._receive_all_bytes(message_size)
-                source_env_robot_state = pickle.loads(data)
-                print("Receiving source object state and source robot pose from source robot")
-                assert source_env_robot_state.message == "Ready"
-                self.set_object_state(set_to_target_object_state=source_env_robot_state.object_state)
-                self.drive_robot_to_target_pose(source_env_robot_state.robot_pose)
-                
-                # tell the source robot that the target robot is ready
-                # Create an instance of Data() to send to client.
-                variable = Data()
-                variable.message = "Ready"
-                # Pickle the object and send it to the server
-                data_string = pickle.dumps(variable)
-                message_length = struct.pack("!I", len(data_string))
-                self.s.send(message_length)
-                self.s.send(data_string)
-        else:
-            # the target robot is ready to execute the policy
-            if self.s is not None:
-                # tell the source robot that the target robot is ready
-                # Create an instance of Data() to send to client.
-                variable = Data()
-                variable.object_state = self.get_object_state()
-                variable.robot_pose = self.compute_eef_pose()
-                variable.message = "Ready"
-                # Pickle the object and send it to the server
-                data_string = pickle.dumps(variable)
-                self.s.send(data_string)     
-                
-                # confirm that the source robot is ready
-                data = self.s.recv(4096)
-                source_env_robot_state = pickle.loads(data)
-                assert source_env_robot_state.message == "Ready", "The source robot is not ready"
+        # the target robot needs to be first initialized to the source object state and source robot pose
+        # receive source object state and source robot pose from source robot
+        if self.s is not None:
+            pickled_message_size = self._receive_all_bytes(4)
+            message_size = struct.unpack("!I", pickled_message_size)[0]
+            data = self._receive_all_bytes(message_size)
+            source_env_robot_state = pickle.loads(data)
+            print("Receiving source object state and source robot pose from source robot")
+            assert source_env_robot_state.message == "Ready"
+            self.set_object_state(set_to_target_object_state=source_env_robot_state.object_state)
+            self.drive_robot_to_target_pose(source_env_robot_state.robot_pose)
+            
+            # tell the source robot that the target robot is ready
+            # Create an instance of Data() to send to client.
+            variable = Data()
+            variable.message = "Ready"
+            # Pickle the object and send it to the server
+            data_string = pickle.dumps(variable)
+            message_length = struct.pack("!I", len(data_string))
+            self.s.send(message_length)
+            self.s.send(data_string)
         
         video_count = 0  # video frame counter
         total_reward = 0.
@@ -259,8 +194,7 @@ class TargetRobot(Robot):
                         }
                     }
                     
-                    cv2.imwrite("/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/rgb.png", cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR) * 255)
-                    # cv2.imwrite("/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/rgb.png", cv2.cvtColor(np.array(Image.fromarray(ros_rgb_img).resize((84, 84))).astype(np.float32) / 255.0, cv2.COLOR_RGB2BGR) * 255)
+                    cv2.imwrite(f"{self.save_stats_path}/rgb.png", cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR) * 255)
                     
                     if not self.offline_eval:
                         inpainted_image = np.zeros((256, 256, 3), dtype=np.uint8)                        
@@ -279,7 +213,6 @@ class TargetRobot(Robot):
                             inpainted_image = self.ros_inpaint_publisher.get_inpainted_image(True)
                             inpainted_image = inpainted_image.astype(np.float32) / 255.0
                             print("Received inpainted image")
-                            # inpainted_image = cv2.cvtColor(inpainted_image, cv2.COLOR_BGR2RGB)
 
                         if self.naive:
                             inpainted_image = rgb_img                     
@@ -302,13 +235,10 @@ class TargetRobot(Robot):
                                     segmentation_mask_source_robot = source_robot_info["ground_truth"]["segmentation_mask"]
                                     masked_image = mask_rgb_image(rgb_img, segmentation_mask_target_robot, segmentation_mask_source_robot)
                                 diffusion_input = masked_image.copy()
-                                cv2.imwrite("/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/masked_image.png", cv2.cvtColor(masked_image, cv2.COLOR_RGB2BGR) * 255)
+                                cv2.imwrite(f"{self.save_stats_path}/masked_image.png", cv2.cvtColor(masked_image, cv2.COLOR_RGB2BGR) * 255)
                                 inpainted_image_256, inpainted_image_84 = self.controlnet.inpaint(masked_image)
                             
                             inpainted_image = inpainted_image_256
-                    else:
-                        # inpainted_image = plt.imread(f"/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/data/diffusion/inpainted_image_{step_i}.png")
-                        inpainted_image = plt.imread(f"/home/kdharmarajan/x-embody/xembody/xembody_robosuite/image_inpainting/data/results_color_threshold_skimage4/inpaint0.png")
                     np.save(self.inpainted_img_path, inpainted_image, allow_pickle=True)
                     if self.use_diffusion:
                         np.save(self.diffusion_model_input_path, diffusion_input, allow_pickle=True)
@@ -322,12 +252,10 @@ class TargetRobot(Robot):
                 message_length = struct.pack("!I", len(data_string))
                 self.s.send(message_length)
                 self.s.send(data_string)
-                # time.sleep(0.1) # if we don't sleep, the target robot will not recieve the message
             
                 
             # receive target object state and target robot pose from target robot
             if self.s is not None:
-                # breakpoint()
                 pickled_message_size = self._receive_all_bytes(4)
                 message_size = struct.unpack("!I", pickled_message_size)[0]
                 data = self._receive_all_bytes(message_size)
@@ -338,16 +266,10 @@ class TargetRobot(Robot):
                     timestep_info_dict["source_robot"] = np.load(self.groundtruth_and_inpaintedprediction_path, allow_pickle=True).item()
                 if source_env_robot_state.done:
                     print("Source robot is done")
-                    # break
                 if source_env_robot_state.success:
                     print("Source robot is successful")
                     if source_finished_step is None:
                         source_finished_step = step_i
-                    # break
-            # if set_object_state:
-            #     self.set_object_state(set_to_target_object_state=source_env_robot_state.object_state)
-            # if set_robot_pose:
-            #     self.drive_robot_to_target_pose(source_env_robot_state.robot_pose)
 
             if target_robot_delta_action:
                 # print("Executing delta action")
@@ -500,10 +422,6 @@ class TargetRobot(Robot):
                     if self.use_demo:
                         print("Source robot is done. Target robot is not successful. Demo exhausted")
                         break
-        # except:
-        #     if self.env.rollout_exceptions:
-        #         print("WARNING: got target robot rollout exception {}".format(self.env.rollout_exceptions))
-
         
         stats = dict(Return=total_reward, Horizon=(step_i + 1), Success_Rate=float(has_succeeded))
             
@@ -765,6 +683,6 @@ if __name__ == "__main__":
     
    
     time.sleep(4) # wait for the server to start
-    target_robot = TargetRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, offline_eval=args.offline_eval, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, use_diffusion=args.use_diffusion, use_ros=args.use_ros, diffusion_input=args.diffusion_input, device=args.device, save_failed_demos=args.save_failed_demos, gripper_types=args.gripper, naive=args.naive)
+    target_robot = TargetRobot(robot_name=args.robot_name, ckpt_path=args.agent, render=args.render, video_path=args.video_path, rollout_horizon=args.horizon, dataset_path=args.dataset_path, passive=args.passive, port=args.port, connection=args.connection, demo_path=args.demo_path, inpaint_enabled=args.inpaint_enabled, offline_eval=args.offline_eval, save_paired_images=args.save_paired_images, save_paired_images_folder_path=args.save_paired_images_folder_path, use_diffusion=args.use_diffusion, use_ros=args.use_ros, diffusion_input=args.diffusion_input, device=args.device, save_failed_demos=args.save_failed_demos, gripper_types=args.gripper, naive=args.naive, save_stats_path=args.save_stats_path)
     target_robot.run_experiments(seeds=args.seeds, rollout_num_episodes=args.n_rollouts, video_skip=args.video_skip, camera_names=args.camera_names, dataset_obs=args.dataset_obs, save_stats_path=args.save_stats_path, tracking_error_threshold=args.tracking_error_threshold, num_iter_max=args.num_iter_max, target_robot_delta_action=args.delta_action, inpaint_online_eval=not target_robot.offline_eval)
 
