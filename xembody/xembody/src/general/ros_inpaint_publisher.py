@@ -2,7 +2,7 @@ import rclpy
 from sensor_msgs.msg import Image, PointCloud2
 from cv_bridge import CvBridge
 from xembody.src.general.xembody_publisher import XEmbodyPublisher
-from sensor_msgs.msg import PointCloud2, PointField
+from sensor_msgs.msg import PointCloud2, PointField, Image
 from input_filenames_msg.msg import MultipleInpaintImages
 import cv2
 import numpy as np
@@ -15,7 +15,7 @@ class ROSInpaintPublisher(XEmbodyPublisher):
     Publishing data is left to sim or real subclasses.
     """
 
-    def __init__(self, use_diffusion: bool = False):
+    def __init__(self, use_diffusion: bool = False, uses_single_img: bool = False):
         """
         Initializes the ROS2 node.
         """
@@ -39,9 +39,10 @@ class ROSInpaintPublisher(XEmbodyPublisher):
         #     0.1
         # )
         # self._time_sync.registerCallback(self._inpaint_image_callback)
-        
+        self._uses_single_img = uses_single_img
+        self._inpaint_sub_type = MultipleInpaintImages  if not uses_single_img else Image
         self._inpaint_sub = self.node.create_subscription(
-            MultipleInpaintImages, 'inpainted_image', self._inpaint_single, 1)
+            self._inpaint_sub_type, 'inpainted_image', self._inpaint_single, 1)
 
         self._cv_bridge = CvBridge()
         self._cv_images = None
@@ -111,8 +112,12 @@ class ROSInpaintPublisher(XEmbodyPublisher):
         print("Received inpainted images")
         with self._internal_lock:
             images = []
-            for image in inpaint_msg.images:
-                images.append(self._cv_bridge.imgmsg_to_cv2(image))
+            if not self._uses_single_img:
+                for image in inpaint_msg.images:
+                    images.append(self._cv_bridge.imgmsg_to_cv2(image))
+            else:
+                images = self._cv_bridge.imgmsg_to_cv2(inpaint_msg)
+
             self._cv_images = images
             
             if self._use_diffusion:

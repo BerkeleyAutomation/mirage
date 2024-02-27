@@ -30,17 +30,22 @@ class ROSInpaintPublisherSim(ROSInpaintPublisher):
     to a node that performs inpainting on a target robot.
     """
 
-    def __init__(self):
+    def __init__(self, source_robot_info: str, target_robot_info: str):
         """
         Initializes the ROS2 node.
+        :param source_robot_info: the information about the source robot to determine which interpolation scheme to use
+        :param target_robot_info: the information about the target robot to determine which interpolation scheme to use
         """
-        super().__init__()
+        super().__init__(uses_single_img=True)
 
         self._publisher = self.node.create_publisher(
-            InputFilesSimData, 'input_files_data_sim', 1)
+            InputFilesSimData, '/input_files_data_sim', 1)
 
         # TODO: generalize this
-        self.gripper_interpolator = GripperInterpolator('panda', 'ur5', '/home/kdharmarajan/x-embody/xembody/xembody_robosuite/paired_trajectories_collection/gripper_interpolation_results_no_task_diff.pkl')
+        self.gripper_interpolator = GripperInterpolator(source_robot_info, target_robot_info, ['/home/mirage/x-embody/xembody/xembody_robosuite/paired_trajectories_collection/gripper_interpolation_results_no_task_diff.pkl',
+                                                                                               '/home/mirage/x-embody/xembody/xembody_robosuite/paired_trajectories_collection/gripper_interpolation_results_20_rollouts.pkl'])
+        # self.gripper_interpolator = GripperInterpolator('panda', 'panda', ['/home/mirage/x-embody/xembody/xembody_robosuite/paired_trajectories_collection/gripper_interpolation_results_no_task_diff.pkl'])
+        # self.gripper_interpolator = GripperInterpolator('panda', 'ur5', '/home/mirage/x-embody/xembody/xembody_robosuite/paired_trajectories_collection/gripper_interpolation_results_no_task_diff.pkl')
 
     def publish_to_ros_node(self, data: ROSInpaintSimData):
         """
@@ -56,5 +61,6 @@ class ROSInpaintPublisherSim(ROSInpaintPublisher):
         msg.segmentation = segmentation_mask.flatten().tolist()
         msg.ee_pose = data.ee_pose.flatten().tolist()
         msg.interpolated_gripper = self.gripper_interpolator.interpolate_gripper(data.gripper_angles).flatten().tolist()
-        msg.camera_name = data.camera_name
+        # msg.camera_name = data.camera_name
         self._publisher.publish(msg)
+        print("Published message")

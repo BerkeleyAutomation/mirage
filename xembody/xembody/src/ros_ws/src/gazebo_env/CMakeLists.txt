@@ -68,6 +68,18 @@ ament_target_dependencies(panda_control_plugin
 )
 target_link_libraries(panda_control_plugin ${GAZEBO_LIBRARIES} ${OpenCV_LIBS})
 
+add_library(panda_no_gripper_control_plugin SHARED panda_no_gripper_control_plugin/panda_no_gripper_control_plugin.cc)
+ament_target_dependencies(panda_no_gripper_control_plugin
+  "gazebo_dev"
+  "gazebo_ros"
+  "rclcpp"
+  "std_msgs"
+  "sensor_msgs"
+  "message_filters"
+  "cv_bridge"
+)
+target_link_libraries(panda_no_gripper_control_plugin ${GAZEBO_LIBRARIES} ${OpenCV_LIBS})
+
 add_library(ur5_and_panda_no_gripper_control_plugin SHARED ur5_and_panda_no_gripper_control_plugin/ur5_and_panda_no_gripper_control_plugin.cc)
 ament_target_dependencies(ur5_and_panda_no_gripper_control_plugin
   "gazebo_dev"
