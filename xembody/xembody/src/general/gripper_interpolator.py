@@ -50,10 +50,11 @@ class GripperInterpolator:
         """
         if self.source_robot == self.target_robot:
             print("Returning angles")
-            return -1 * gripper_angles
+            return 1 * gripper_angles
         
         relevant_interpoolator = self.interpolators[(self.source_robot, self.target_robot)]
         regression_model = LinearRegression()
+
 
         regression_model.coef_ = relevant_interpoolator["coef"]
         regression_model.intercept_ = relevant_interpoolator["intercept"]
