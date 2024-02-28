@@ -4,7 +4,7 @@ import pickle
 import socket
 import struct
 import threading
-from mirage.src.infra.ros_inpaint_publisher_real import ROSInpaintRealData, ROSInpaintPublisherReal
+from mirage.infra.ros_inpaint_publisher_real import ROSInpaintRealData, ROSInpaintPublisherReal
 
 class ROSProxyInpaintServer:
     """

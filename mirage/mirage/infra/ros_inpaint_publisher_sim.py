@@ -1,6 +1,6 @@
 from input_filenames_msg.msg import InputFilesSimData
-from mirage.src.infra.ros_inpaint_publisher import ROSInpaintPublisher
-from mirage.mirage.src.gripper_interpolation.gripper_interpolator import GripperInterpolator
+from mirage.infra.ros_inpaint_publisher import ROSInpaintPublisher
+from mirage.mirage.gripper_interpolation.gripper_interpolator import GripperInterpolator
 import numpy as np
 
 class ROSInpaintSimData:

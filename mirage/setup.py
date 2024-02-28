@@ -17,6 +17,7 @@ setup(
         "pyyaml",
         "prettytable",
         "scikit-learn",
+        "open3d"
     ],
     extras_require={
         "docs": [

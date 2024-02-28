@@ -37,10 +37,10 @@ class TargetRobot(Robot):
         if self.inpaint_enabled:
             if not self.offline_eval:
                 if self.use_ros:
-                    from mirage.src.infra.ros_inpaint_publisher_sim import ROSInpaintPublisherSim
+                    from mirage.infra.ros_inpaint_publisher_sim import ROSInpaintPublisherSim
                     self.ros_inpaint_publisher = ROSInpaintPublisherSim()                    
                 if self.use_diffusion:
-                    from mirage.mirage.src.diffusion.controlnet import ControlNet
+                    from mirage.mirage.diffusion.controlnet import ControlNet
                     self.controlnet = ControlNet()
                     assert self.diffusion_input is not None, "Please specify diffusion input: analytic/masked/target_robot"
                     assert self.diffusion_input in ["analytic", "masked", "target_robot"], "Unknown diffusion input type. Please specify diffusion input: analytic/masked/target_robot"
@@ -202,7 +202,7 @@ class TargetRobot(Robot):
                         ros_segmentation_mask = np.repeat(segmentation_mask[:,:,np.newaxis],3,axis=2).astype(np.uint8)
                         if self.use_ros:
                             print("Publishing")
-                            from mirage.src.infra.ros_inpaint_publisher_sim import ROSInpaintSimData
+                            from mirage.infra.ros_inpaint_publisher_sim import ROSInpaintSimData
                             eef_pose = self.compute_eef_pose()
                             eef_pose_matrix = T.pose2mat((eef_pose[:3], eef_pose[3:]))
                             data = ROSInpaintSimData(ros_rgb_img, ros_depth_img, ros_segmentation_mask, eef_pose_matrix, obs['robot0_gripper_qpos'][-1:])
