@@ -5,8 +5,7 @@
   </picture>
 </p>
 
-This repository contains the official implementation of Mirage, a novel zero-shot cross-embodiment policy transfer method that uses cross-painting to bridge the visual
-gap and forward dynamics to bridge the control gap. There is also benchmarking code for across a variety of cross-embodiment scenariors with different robots, tasks, and simulators.
+This repository contains the official implementation of Mirage, a novel zero-shot cross-embodiment policy transfer method that uses cross-painting to bridge the visual gap and forward dynamics to bridge the control gap. There is also benchmarking code for across a variety of cross-embodiment scenariors with different robots, tasks, and simulators. Please know that the repo is under active development, please see progress [here](https://github.com/BerkeleyAutomation/mirage/issues/6). 
 
 ## Supported Robots, Tasks, and Simulators
 <p align="center">
