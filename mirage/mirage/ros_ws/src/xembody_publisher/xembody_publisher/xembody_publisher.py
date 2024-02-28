@@ -1,4 +1,4 @@
-from mirage.src.infra.ros_inpaint_publisher_sim import ROSInpaintPublisherSim
+from mirage.infra.ros_inpaint_publisher_sim import ROSInpaintPublisherSim
 import numpy as np
 import threading
 import os

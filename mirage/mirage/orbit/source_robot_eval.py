@@ -144,8 +144,8 @@ if __name__ == "__main__":
 from omni.isaac.orbit_envs.utils.wrappers.rsl_rl import RslRlVecEnvWrapper
 from config import parse_rslrl_cfg
 import robomimic.utils.tensor_utils as TensorUtils
-from mirage.src.orbit.orbit_renderer import OrbitRenderer
-from mirage.src.orbit.utils import set_robot_configuration
+from mirage.orbit.orbit_renderer import OrbitRenderer
+from mirage.orbit.utils import set_robot_configuration
 import robosuite.utils.transform_utils as T
 from omni.isaac.orbit_envs.utils import parse_env_cfg
 

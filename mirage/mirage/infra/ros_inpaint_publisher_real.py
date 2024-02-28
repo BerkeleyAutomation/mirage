@@ -1,5 +1,5 @@
 from input_filenames_msg.msg import InputFilesRealDataMulti, InputFilesRealData
-from mirage.src.infra.ros_inpaint_publisher import ROSInpaintPublisher
+from mirage.infra.ros_inpaint_publisher import ROSInpaintPublisher
 import numpy as np
 from typing import List
 

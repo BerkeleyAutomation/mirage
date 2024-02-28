@@ -45,7 +45,7 @@ from omni.isaac.orbit.robots.config.universal_robots import UR10_CFG, UR5_CFG
 from omni.isaac.orbit.robots.config.kinova import JACO_CFG
 from omni.isaac.orbit.robots.single_arm import SingleArmManipulator
 from omni.isaac.orbit.utils.assets import ISAAC_NUCLEUS_DIR
-from mirage.src.orbit.orbit_renderer import OrbitRenderer
+from mirage.orbit.orbit_renderer import OrbitRenderer
 import cv2
 import open3d as o3d
 import numpy as np
