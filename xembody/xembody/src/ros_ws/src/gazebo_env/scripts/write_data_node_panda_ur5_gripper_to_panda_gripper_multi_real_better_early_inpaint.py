@@ -87,7 +87,7 @@ class WriteData(Node):
         self.joint_state_msg = JointState()
 
         #Harcoding start position
-        self.q_init_ = np.array([-0.53852111,  0.08224237,  0.53535473, -2.26215458, -0.0946562 ,2.28648186, -0.10421298])
+        self.q_init_ = np.array([-0.56332457,  0.06948572,  0.5227356,  -2.26363611, -0.11123186,  2.28321218, -0.09410787])
         
         self.urdf_xacro_path_ = os.path.join(FindPackageShare(package="gazebo_env").find("gazebo_env"),"urdf","panda_arm_hand_only.urdf.xacro")
         xacro_command = "ros2 run xacro xacro " + self.urdf_xacro_path_
@@ -109,8 +109,10 @@ class WriteData(Node):
         self.publishers_ = []
         self.subscribers_ = []
         self.timers_ = []
-        self.real_rgb_ = None
-        self.real_depth_ = None
+        self.left_real_rgb_ = None
+        self.right_real_rgb_ = None
+        self.left_real_depth_ = None
+        self.right_real_depth_ = None
         self.real_seg_ = None
         self.real_qout_list_ = None
         self.i_ = -1
@@ -135,52 +137,99 @@ class WriteData(Node):
             1
         )
 
-        self.ur5_rgb_ = None
-        self.ur5_depth_ = None
-        self.panda_rgb_ = None
-        self.panda_depth_ = None
-        self.panda_no_gripper_rgb_ = None
-        self.panda_no_gripper_depth_ = None
+        self.ur5_left_rgb_ = None
+        self.ur5_left_depth_ = None
+        self.panda_left_rgb_ = None
+        self.panda_left_depth_ = None
+        self.ur5_left_camera_color_subscription_ = self.create_subscription(
+            Image,
+            '/ur5_left_camera/image_raw',
+            self.ur5LeftRgbCallback,
+            1
+        )
+
+        self.ur5_left_camera_depth_subscription_ = self.create_subscription(
+            Image,
+            '/ur5_left_camera/depth/image_raw',
+            self.ur5LeftDepthCallback,
+            1
+        )
+
+        self.panda_left_camera_color_subscription_ = self.create_subscription(
+            Image,
+            '/panda_left_camera/image_raw',
+            self.pandaLeftRgbCallback,
+            1
+        )
+
+        self.panda_left_camera_depth_subscription_ = self.create_subscription(
+            Image,
+            '/panda_left_camera/depth/image_raw',
+            self.pandaLeftDepthCallback,
+            1
+        )
+
+        self.ur5_right_rgb_ = None
+        self.ur5_right_depth_ = None
+        self.panda_right_rgb_ = None
+        self.panda_right_depth_ = None
+        self.ur5_right_camera_color_subscription_ = self.create_subscription(
+            Image,
+            '/ur5_right_camera/image_raw',
+            self.ur5RightRgbCallback,
+            1
+        )
+
+        self.ur5_right_camera_depth_subscription_ = self.create_subscription(
+            Image,
+            '/ur5_right_camera/depth/image_raw',
+            self.ur5RightDepthCallback,
+            1
+        )
+
+        self.panda_right_camera_color_subscription_ = self.create_subscription(
+            Image,
+            '/panda_right_camera/image_raw',
+            self.pandaRightRgbCallback,
+            1
+        )
+
+        self.panda_right_camera_depth_subscription_ = self.create_subscription(
+            Image,
+            '/panda_right_camera/depth/image_raw',
+            self.pandaRightDepthCallback,
+            1
+        )
         
-        self.ur5_camera_color_subscription_ = self.create_subscription(
+        self.panda_left_no_gripper_rgb_ = None
+        self.panda_left_no_gripper_depth_ = None
+        self.panda_right_no_gripper_rgb_ = None
+        self.panda_right_no_gripper_depth_ = None
+        self.panda_no_gripper_left_camera_color_subscription_ = self.create_subscription(
             Image,
-            '/ur5_camera/image_raw',
-            self.ur5RgbCallback,
+            '/panda_no_gripper_left_camera/image_raw',
+            self.pandaLeftNoGripperRgbCallback,
             1
         )
 
-        self.ur5_camera_depth_subscription_ = self.create_subscription(
+        self.panda_no_gripper_left_camera_depth_subscription_ = self.create_subscription(
             Image,
-            '/ur5_camera/depth/image_raw',
-            self.ur5DepthCallback,
+            '/panda_no_gripper_left_camera/depth/image_raw',
+            self.pandaLeftNoGripperDepthCallback,
             1
         )
 
-        self.panda_camera_color_subscription_ = self.create_subscription(
+        self.panda_no_gripper_right_camera_color_subscription_ = self.create_subscription(
             Image,
-            '/panda_camera/image_raw',
-            self.pandaRgbCallback,
+            '/panda_no_gripper_right_camera/image_raw',
+            self.pandaRightNoGripperRgbCallback,
             1
         )
 
-        self.panda_camera_depth_subscription_ = self.create_subscription(
+        self.panda_no_gripper_right_camera_depth_subscription_ = self.create_subscription(
             Image,
-            '/panda_camera/depth/image_raw',
-            self.pandaDepthCallback,
-            1
-        )
-        
-        self.panda_no_gripper_camera_color_subscription_ = self.create_subscription(
-            Image,
-            '/panda_no_gripper_camera/image_raw',
-            self.pandaNoGripperRgbCallback,
-            1
-        )
-
-        self.panda_no_gripper_camera_depth_subscription_ = self.create_subscription(
-            Image,
-            '/panda_no_gripper_camera/depth/image_raw',
-            self.pandaNoGripperDepthCallback,
+            '/panda_no_gripper_right_camera/depth/image_raw',
+            self.pandaRightNoGripperDepthCallback,
             1
         )
 
@@ -226,70 +275,156 @@ class WriteData(Node):
         self.full_publisher_ = self.create_publisher(PointCloud2,"full_pointcloud",1)
         self.inpainted_publisher_ = self.create_publisher(MultipleInpaintImages,"inpainted_image",1)
         #self.full_subscriber_ = self.create_subscription(PointCloud2,'full_pointcloud',self.fullPointcloudCallback,10)
-        self.full_mask_image_publisher_ = self.create_publisher(Image,"full_mask_image",1)
+        self.full_mask_image_publisher_ = self.create_publisher(MultipleInpaintImages,"full_mask_image",1)
         self.updated_joints_ = False
         self.is_ready_ = True
     
-    def ur5RgbCallback(self,msg):
-        self.ur5_rgb_ = msg
+    def ur5LeftRgbCallback(self,msg):
+        self.ur5_left_rgb_ = msg
     
-    def ur5DepthCallback(self,msg):
-        self.ur5_depth_ = msg
+    def ur5LeftDepthCallback(self,msg):
+        self.ur5_left_depth_ = msg
 
-    def pandaRgbCallback(self,msg):
-        self.panda_rgb_ = msg
+    def pandaLeftRgbCallback(self,msg):
+        self.panda_left_rgb_ = msg
     
-    def pandaDepthCallback(self,msg):
-        self.panda_depth_ = msg
-        
-    def pandaNoGripperRgbCallback(self,msg):
-        self.panda_no_gripper_rgb_ = msg
+    def pandaLeftDepthCallback(self,msg):
+        self.panda_left_depth_ = msg
+
+    def ur5RightRgbCallback(self,msg):
+        self.ur5_right_rgb_ = msg
     
-    def pandaNoGripperDepthCallback(self,msg):
-        self.panda_no_gripper_depth_ = msg
+    def ur5RightDepthCallback(self,msg):
+        self.ur5_right_depth_ = msg
+
+    def pandaRightRgbCallback(self,msg):
+        self.panda_right_rgb_ = msg
+    
+    def pandaRightDepthCallback(self,msg):
+        self.panda_right_depth_ = msg
+
+    def pandaLeftNoGripperRgbCallback(self,msg):
+        self.panda_left_no_gripper_rgb_ = msg
+
+    def pandaLeftNoGripperDepthCallback(self,msg):
+        self.panda_left_no_gripper_depth_ = msg
+
+    def pandaRightNoGripperRgbCallback(self,msg):
+        self.panda_right_no_gripper_rgb_ = msg
+
+    def pandaRightNoGripperDepthCallback(self,msg):
+        self.panda_right_no_gripper_depth_ = msg
 
     def noTimeGazeboCallback(self,joint_msg):
         start_time = time.time()
-        real_rgb = self.ur5_rgb_
-        real_depth = self.ur5_depth_
-        gazebo_rgb = self.panda_rgb_
-        gazebo_depth = self.panda_depth_
-        gazebo_no_gripper_rgb = self.panda_no_gripper_rgb_
-        gazebo_no_gripper_depth = self.panda_no_gripper_depth_
+        left_inpainted_image,left_mask = self.doFullInpainting(self.ur5_left_rgb_,self.ur5_left_depth_,self.panda_left_rgb_,self.panda_left_depth_,self.panda_left_no_gripper_depth_,self.left_real_rgb_,self.left_real_depth_)
+        right_inpainted_image,right_mask = self.doFullInpainting(self.ur5_right_rgb_,self.ur5_right_depth_,self.panda_right_rgb_,self.panda_right_depth_,self.panda_right_no_gripper_depth_,self.right_real_rgb_,self.right_real_depth_)
+        inpainted_image_msg = MultipleInpaintImages()
+        mask_image_msg = MultipleInpaintImages()
+        inpainted_image_msg.images = [self.cv_bridge_.cv2_to_imgmsg(left_inpainted_image),self.cv_bridge_.cv2_to_imgmsg(right_inpainted_image),self.cv_bridge_.cv2_to_imgmsg(left_mask),self.cv_bridge_.cv2_to_imgmsg(right_mask)]
+        mask_image_msg.images = []
+        self.inpainted_publisher_.publish(inpainted_image_msg)
+        self.full_mask_image_publisher_.publish(mask_image_msg)
+        inpaint_number = str(self.i_).zfill(5)
+        if not os.path.exists('left_inpainting'):
+            os.makedirs('left_inpainting')
+        if not os.path.exists('right_inpainting'):
+            os.makedirs('right_inpainting')
+        if not os.path.exists('left_mask'):
+            os.makedirs('left_mask')
+        if not os.path.exists('right_mask'):
+            os.makedirs('right_mask')
+        if(self.float_image_):
+            left_inpainted_image = (left_inpainted_image * 255).astype(np.uint8)
+            right_inpainted_image = (right_inpainted_image * 255).astype(np.uint8)
+            left_mask = (left_mask * 255).astype(np.uint8)
+            right_mask = (right_mask * 255).astype(np.uint8)
+        cv2.imwrite('left_inpainting/inpaint'+ str(inpaint_number) +'.png',left_inpainted_image)
+        cv2.imwrite('right_inpainting/inpaint'+ str(inpaint_number) +'.png',right_inpainted_image)
+        cv2.imwrite('left_mask/mask'+ str(inpaint_number) +'.png',left_mask)
+        cv2.imwrite('right_mask/mask'+ str(inpaint_number) +'.png',right_mask)
+
+    def doFullInpainting(self,real_rgb,real_depth,gazebo_rgb,gazebo_depth,gazebo_no_gripper_depth,world_rgb,world_depth):
         real_rgb_np = self.cv_bridge_.imgmsg_to_cv2(real_rgb)
         real_depth_np = self.cv_bridge_.imgmsg_to_cv2(real_depth)
         gazebo_rgb_np = self.cv_bridge_.imgmsg_to_cv2(gazebo_rgb)
+        
         gazebo_depth_np = self.cv_bridge_.imgmsg_to_cv2(gazebo_depth)
-        gazebo_no_gripper_rgb_np = self.cv_bridge_.imgmsg_to_cv2(gazebo_no_gripper_rgb)
-        gazebo_no_gripper_depth_np = self.cv_bridge_.imgmsg_to_cv2(gazebo_no_gripper_depth)
         cv2.imwrite('real_rgb.png',real_rgb_np)
         cv2.imwrite('real_depth.png',self.normalize_depth_image(real_depth_np))
         cv2.imwrite('gazebo_rgb.png',gazebo_rgb_np)
         cv2.imwrite('gazebo_depth.png',self.normalize_depth_image(gazebo_depth_np))
-        cv2.imwrite('gazebo_no_gripper_rgb.png',gazebo_no_gripper_rgb_np)
-        cv2.imwrite('gazebo_no_gripper_depth.png',self.normalize_depth_image(gazebo_no_gripper_depth_np))
+        gazebo_no_gripper_depth_np = self.cv_bridge_.imgmsg_to_cv2(gazebo_no_gripper_depth)
         
         real_seg_np = (real_depth_np < 8).astype(np.uint8)
         real_seg_255_np = 255 * real_seg_np
         gazebo_seg_np = (gazebo_depth_np < 8).astype(np.uint8)
         gazebo_seg_255_np = 255 * gazebo_seg_np
-        real_no_gripper_seg_255_np = (gazebo_no_gripper_depth_np < 8).astype(np.uint8)
-        real_no_gripper_seg_255_np = 255 * real_no_gripper_seg_255_np
         cv2.imwrite('real_seg.png',real_seg_255_np)
         cv2.imwrite('gazebo_seg.png',gazebo_seg_255_np)
-        cv2.imwrite('real_seg2.png',real_no_gripper_seg_255_np)
-
-        real_rgb = self.real_rgb_
-        real_depth = self.real_depth_
+        real_no_gripper_seg_255_np = (gazebo_no_gripper_depth_np < 8).astype(np.uint8)
+        real_no_gripper_seg_255_np = 255 * real_no_gripper_seg_255_np
+        real_rgb = world_rgb
+        real_depth = world_depth
         real_seg = real_seg_255_np
         gazebo_rgb_np = cv2.cvtColor(gazebo_rgb_np,cv2.COLOR_BGR2RGB)
-        
-        self.dummyInpaintingEarly(real_rgb,real_seg,real_no_gripper_seg_255_np,gazebo_rgb_np,gazebo_seg_255_np)
-        #self.inpainting(real_rgb,real_depth,real_seg,gazebo_rgb_np,gazebo_seg_255_np,gazebo_depth_np)
-        self.updated_joints_ = False
-        end_time = time.time()
-        print("Algo time Part 3: " + str(end_time - start_time) + " seconds")
-        return
+        return self.dummyInpaintingEarly(real_rgb,real_seg,real_no_gripper_seg_255_np,gazebo_rgb_np,gazebo_seg_255_np)
+    
+    def dummyInpaintingEarly(self,rgb,seg_file,seg_file_no_gripper,gazebo_rgb,gazebo_seg):
+        rgb = self.cv_bridge_.imgmsg_to_cv2(rgb)
+        if(rgb.dtype == np.float32):
+            rgb = (rgb * 255).astype(np.uint8)
+        # rgb = cv2.resize(rgb,(128,128))
+        # seg_file = cv2.resize(seg_file,(128,128))
+        # gazebo_rgb = cv2.resize(gazebo_rgb,(128,128))
+        # gazebo_seg = cv2.resize(gazebo_seg,(128,128))
+        _, gazebo_seg = cv2.threshold(gazebo_seg, 128, 255, cv2.THRESH_BINARY)
+        _, seg_file = cv2.threshold(seg_file, 128, 255, cv2.THRESH_BINARY)
+        _, seg_file_no_gripper = cv2.threshold(seg_file_no_gripper, 128, 255, cv2.THRESH_BINARY)
+        cv2.imwrite('seg_file.png',seg_file)
+        cv2.imwrite('seg_file_no_gripper.png',seg_file_no_gripper)
+        seg_file_gripper = abs(seg_file - seg_file_no_gripper)
+        seg_file_gripper = cv2.erode(seg_file_gripper,np.ones((3,3),np.uint8),iterations=3)
+        seg_file_gripper = cv2.dilate(seg_file_gripper,np.ones((3,3),np.uint8),iterations=15)
+        cv2.imwrite('seg_file_gripper.png',seg_file_gripper)
+        gazebo_segmentation_mask_255 = gazebo_seg
+        inverted_segmentation_mask_255_original = cv2.bitwise_not(seg_file_no_gripper)
+        cv2.imwrite('inverted_mask1.png',inverted_segmentation_mask_255_original)
+        inverted_segmentation_mask_255 = cv2.erode(inverted_segmentation_mask_255_original,np.ones((3,3),np.uint8),iterations=30)
+        cv2.imwrite('inverted_mask2.png',inverted_segmentation_mask_255)
+        eroded_segmentation_mask_255 = cv2.bitwise_not(inverted_segmentation_mask_255)
+        cv2.imwrite('eroded_mask1.png',eroded_segmentation_mask_255)
+        eroded_segmentation_mask_255 = eroded_segmentation_mask_255 + seg_file_gripper
+        cv2.imwrite('eroded_mask2.png',eroded_segmentation_mask_255)
+        inverted_segmentation_mask_255 = cv2.bitwise_not(eroded_segmentation_mask_255)
+        cv2.imwrite('final_mask.png',inverted_segmentation_mask_255)
+        gazebo_only = cv2.bitwise_and(gazebo_rgb,gazebo_rgb,mask=gazebo_segmentation_mask_255)
+        # gazebo_only = cv2.cvtColor(gazebo_only,cv2.COLOR_BGR2RGB)
+        #gazebo_robot_only_lab = cv2.cvtColor(gazebo_only,cv2.COLOR_BGR2LAB)
+        #gazebo_robot_only_lab[:,:,0] += 10
+        #gazebo_robot_only_lab[:,:,0] = np.where(gazebo_segmentation_mask_255 > 0, gazebo_robot_only_lab[:,:,0] + 150, gazebo_robot_only_lab[:,:,0])
+        #gazebo_only = cv2.cvtColor(gazebo_robot_only_lab,cv2.COLOR_LAB2BGR)
+        cv2.imwrite('gazebo_robot_only.png',gazebo_only)
+        cv2.imwrite('background_only_pre1.png',rgb)
+        cv2.imwrite('background_only_pre2.png',inverted_segmentation_mask_255)
+        _, inverted_segmentation_mask_255 = cv2.threshold(inverted_segmentation_mask_255, 128, 255, cv2.THRESH_BINARY)
+        cv2.imwrite('background_only_pre2.png',inverted_segmentation_mask_255)
+        background_only = cv2.bitwise_and(rgb,rgb,mask=inverted_segmentation_mask_255)
+        cv2.imwrite('background_only_pre3.png',background_only)
+        background_only = cv2.inpaint(background_only,cv2.bitwise_not(inverted_segmentation_mask_255),3,cv2.INPAINT_TELEA)
+        cv2.imwrite('background_only2.png',background_only)
+        inverted_seg_file_original = cv2.bitwise_not(seg_file)
+        inverted_seg_file = cv2.erode(inverted_seg_file_original,np.ones((3,3),np.uint8),iterations=3)
+        background_only = cv2.bitwise_and(background_only,background_only,mask=cv2.bitwise_not(gazebo_segmentation_mask_255))
+        cv2.imwrite('background_only3.png',background_only)
+        inpainted_image = gazebo_only + background_only
+        cv2.imwrite('background_only4.png',inpainted_image)
+        better_dilated_blend_mask = cv2.bitwise_not(inverted_seg_file)*cv2.bitwise_not(gazebo_seg)*255
+        diffusion_input = cv2.bitwise_and(inpainted_image,inpainted_image,mask=cv2.bitwise_not(better_dilated_blend_mask))
+        if(self.float_image_):
+            inpainted_image = (inpainted_image / 255.0).astype(np.float32)
+            diffusion_input = (diffusion_input / 255.0).astype(np.float32)
+        return inpainted_image,diffusion_input
 
     def gazeboCallback(self,joints,real_rgb,real_depth,gazebo_rgb,gazebo_depth,):
         return
@@ -510,74 +645,6 @@ class WriteData(Node):
             depth_image[pixel[1],pixel[0]] = point[2]
         return depth_image
     
-    # RGB AND SEG FILE ARE THE UR5 AND GAZEBO IS THE PANDA AND NO GRIPPER SEG IS UR4
-    def dummyInpaintingEarly(self,rgb,seg_file,seg_file_no_gripper,gazebo_rgb,gazebo_seg):
-        
-        rgb = self.cv_bridge_.imgmsg_to_cv2(rgb)
-        if(rgb.dtype == np.float32):
-            rgb = (rgb * 255).astype(np.uint8)
-        # rgb = cv2.resize(rgb,(128,128))
-        # seg_file = cv2.resize(seg_file,(128,128))
-        # gazebo_rgb = cv2.resize(gazebo_rgb,(128,128))
-        # gazebo_seg = cv2.resize(gazebo_seg,(128,128))
-        _, gazebo_seg = cv2.threshold(gazebo_seg, 128, 255, cv2.THRESH_BINARY)
-        _, seg_file = cv2.threshold(seg_file, 128, 255, cv2.THRESH_BINARY)
-        _, seg_file_no_gripper = cv2.threshold(seg_file_no_gripper, 128, 255, cv2.THRESH_BINARY)
-        seg_file_gripper = abs(seg_file - seg_file_no_gripper)
-        seg_file_gripper = cv2.erode(seg_file_gripper,np.ones((3,3),np.uint8),iterations=3)
-        
-        cv2.imwrite('seg_file_gripper.png',seg_file_gripper)
-        gazebo_segmentation_mask_255 = gazebo_seg
-        inverted_segmentation_mask_255_original = cv2.bitwise_not(seg_file_no_gripper)
-        cv2.imwrite('inverted_mask1.png',inverted_segmentation_mask_255_original)
-        inverted_segmentation_mask_255 = cv2.erode(inverted_segmentation_mask_255_original,np.ones((3,3),np.uint8),iterations=40)
-        cv2.imwrite('inverted_mask2.png',inverted_segmentation_mask_255)
-        eroded_segmentation_mask_255 = cv2.bitwise_not(inverted_segmentation_mask_255)
-        cv2.imwrite('eroded_mask1.png',eroded_segmentation_mask_255)
-        eroded_segmentation_mask_255 = eroded_segmentation_mask_255 + seg_file_gripper
-        cv2.imwrite('eroded_mask2.png',eroded_segmentation_mask_255)
-        inverted_segmentation_mask_255 = cv2.bitwise_not(eroded_segmentation_mask_255)
-        cv2.imwrite('final_mask.png',inverted_segmentation_mask_255)
-        gazebo_only = cv2.bitwise_and(gazebo_rgb,gazebo_rgb,mask=gazebo_segmentation_mask_255)
-        # gazebo_only = cv2.cvtColor(gazebo_only,cv2.COLOR_BGR2RGB)
-        #gazebo_robot_only_lab = cv2.cvtColor(gazebo_only,cv2.COLOR_BGR2LAB)
-        #gazebo_robot_only_lab[:,:,0] += 10
-        #gazebo_robot_only_lab[:,:,0] = np.where(gazebo_segmentation_mask_255 > 0, gazebo_robot_only_lab[:,:,0] + 150, gazebo_robot_only_lab[:,:,0])
-        #gazebo_only = cv2.cvtColor(gazebo_robot_only_lab,cv2.COLOR_LAB2BGR)
-        cv2.imwrite('gazebo_robot_only.png',gazebo_only)
-        cv2.imwrite('background_only_pre1.png',rgb)
-        cv2.imwrite('background_only_pre2.png',inverted_segmentation_mask_255)
-        _, inverted_segmentation_mask_255 = cv2.threshold(inverted_segmentation_mask_255, 128, 255, cv2.THRESH_BINARY)
-        cv2.imwrite('background_only_pre2.png',inverted_segmentation_mask_255)
-        background_only = cv2.bitwise_and(rgb,rgb,mask=inverted_segmentation_mask_255)
-        cv2.imwrite('background_only_pre3.png',background_only)
-        background_only = cv2.inpaint(background_only,cv2.bitwise_not(inverted_segmentation_mask_255),3,cv2.INPAINT_TELEA)
-        cv2.imwrite('background_only2.png',background_only)
-        inverted_seg_file_original = cv2.bitwise_not(seg_file)
-        inverted_seg_file = cv2.erode(inverted_seg_file_original,np.ones((3,3),np.uint8),iterations=3)
-        background_only = cv2.bitwise_and(background_only,background_only,mask=cv2.bitwise_not(gazebo_segmentation_mask_255))
-        cv2.imwrite('background_only3.png',background_only)
-        inpainted_image = gazebo_only + background_only
-        cv2.imwrite('background_only4.png',inpainted_image)
-        better_dilated_blend_mask = cv2.bitwise_not(inverted_seg_file)*cv2.bitwise_not(gazebo_seg)*255
-        inpaint_number = str(self.i_).zfill(5)
-        if not os.path.exists('inpainting'):
-            os.makedirs('inpainting')
-        if not os.path.exists('mask'):
-            os.makedirs('mask')
-        cv2.imwrite('inpainting/inpaint'+ str(inpaint_number) +'.png',inpainted_image)
-        cv2.imwrite('mask/mask'+ str(inpaint_number) +'.png',better_dilated_blend_mask.astype(np.uint8))
-        if(self.float_image_):
-            inpainted_image = (inpainted_image / 255.0).astype(np.float32)
-        inpainted_image_msg = self.cv_bridge_.cv2_to_imgmsg(inpainted_image)
-        mask_image_msg = self.cv_bridge_.cv2_to_imgmsg(better_dilated_blend_mask.astype(np.uint8),encoding="mono8")
-        inpainted_image_msg.header.stamp = self.get_clock().now().to_msg()
-        mask_image_msg.header.stamp = inpainted_image_msg.header.stamp
-        inpainted_image_msgs = MultipleInpaintImages()
-        inpainted_image_msgs.images = [inpainted_image_msg,inpainted_image_msg]
-        self.inpainted_publisher_.publish(inpainted_image_msgs)
-        self.mask_image_publisher_.publish(mask_image_msg)
-
     def dummyInpainting(self,rgb,seg_file,gazebo_rgb,gazebo_seg):
         rgb = self.cv_bridge_.imgmsg_to_cv2(rgb)
         if(rgb.dtype == np.float32):
@@ -590,7 +657,7 @@ class WriteData(Node):
         gazebo_segmentation_mask_255 = gazebo_seg
         inverted_segmentation_mask_255_original = cv2.bitwise_not(gazebo_seg)
         cv2.imwrite('inverted_mask1.png',inverted_segmentation_mask_255_original)
-        inverted_segmentation_mask_255 = cv2.erode(inverted_segmentation_mask_255_original,np.ones((3,3),np.uint8),iterations=40)
+        inverted_segmentation_mask_255 = cv2.erode(inverted_segmentation_mask_255_original,np.ones((3,3),np.uint8),iterations=10)
         cv2.imwrite('inverted_mask2.png',inverted_segmentation_mask_255)
         outline_mask = abs(inverted_segmentation_mask_255 - inverted_segmentation_mask_255_original)*255
         gazebo_only = cv2.bitwise_and(gazebo_rgb,gazebo_rgb,mask=gazebo_segmentation_mask_255)
@@ -600,17 +667,29 @@ class WriteData(Node):
         #gazebo_robot_only_lab[:,:,0] = np.where(gazebo_segmentation_mask_255 > 0, gazebo_robot_only_lab[:,:,0] + 150, gazebo_robot_only_lab[:,:,0])
         #gazebo_only = cv2.cvtColor(gazebo_robot_only_lab,cv2.COLOR_LAB2BGR)
         cv2.imwrite('gazebo_robot_only.png',gazebo_only)
-        background_only = cv2.bitwise_and(rgb,rgb,mask=inverted_segmentation_mask_255)
-        cv2.imwrite('background_only.png',background_only)
-        background_only = cv2.inpaint(background_only,cv2.bitwise_not(inverted_segmentation_mask_255),3,cv2.INPAINT_TELEA)
-        cv2.imwrite('background_only2.png',background_only)
+        background_only = cv2.bitwise_and(rgb,rgb,mask=inverted_segmentation_mask_255_original)
         inverted_seg_file_original = cv2.bitwise_not(seg_file)
+        #cv2.imwrite('inverted_seg_file_original.png',inverted_seg_file_original)
         inverted_seg_file = cv2.erode(inverted_seg_file_original,np.ones((3,3),np.uint8),iterations=3)
-        background_only = cv2.bitwise_and(background_only,background_only,mask=inverted_segmentation_mask_255_original)
-        cv2.imwrite('background_only3.png',background_only)
+        #cv2.imwrite('inverted_seg_file.png',inverted_seg_file)
+        background_only = cv2.bitwise_and(background_only,background_only,mask=inverted_seg_file)
+        cv2.imwrite('background_only.png',background_only)
         inpainted_image = gazebo_only + background_only
-        cv2.imwrite('background_only4.png',inpainted_image)
+        #cv2.imwrite('no_fill.png',inpainted_image)
+
         better_dilated_blend_mask = cv2.bitwise_not(inverted_seg_file)*cv2.bitwise_not(gazebo_seg)*255
+        cv2.imwrite('better_dilated_blend_mask.png',better_dilated_blend_mask)
+        cv2.imwrite('pre_inpainted_image.png',inpainted_image)
+        cv2_inpaint_image = cv2.inpaint(inpainted_image,better_dilated_blend_mask,3,cv2.INPAINT_TELEA)
+
+        target_color = (39,43,44)
+        target_mask = np.zeros_like(inpainted_image)
+        target_mask[:,:] = target_color
+        inpainted_image = np.where(better_dilated_blend_mask[:,:,None] != 0,target_mask,inpainted_image).astype(np.uint8)
+        inpainted_image = cv2_inpaint_image
+        cv2.imwrite('og_inpainted_image.png',inpainted_image)
+        import pdb
+        pdb.set_trace()
         inpaint_number = str(self.i_).zfill(5)
         if not os.path.exists('inpainting'):
             os.makedirs('inpainting')
@@ -1115,33 +1194,46 @@ class WriteData(Node):
             end_time = time.time()
 
     def listenerCallbackOnlineDebug(self,msg):
-        msg = msg.data_pieces[0]
-        start_time = time.time()
-        self.i_ += 1
-        online_input_folder = 'offline_ur5e_input'
-        if not os.path.exists(online_input_folder):
-            os.makedirs(online_input_folder)
-        online_input_num_folder = online_input_folder + '/offline_ur5e_' + str(int(self.i_ / 2)) 
-        if not os.path.exists(online_input_num_folder):
-            os.makedirs(online_input_num_folder)
-        
-        rgb_np = self.cv_bridge_.imgmsg_to_cv2(msg.rgb)
-        if(rgb_np.dtype == np.float32):
+        if(len(msg.data_pieces) == 2):
+            start_time = time.time()
+            self.i_ += 1
+            online_input_folder = 'offline_ur5e_input'
+            if not os.path.exists(online_input_folder):
+                os.makedirs(online_input_folder)
+            online_input_num_folder = online_input_folder + '/offline_ur5e_' + str(int(self.i_ / 2)) 
+            if not os.path.exists(online_input_num_folder):
+                os.makedirs(online_input_num_folder)
+            left_msg = msg.data_pieces[0]
+            right_msg = msg.data_pieces[1]
+        elif(len(msg.data_pieces) == 1):
+            left_msg = msg.data_pieces[0]
+        left_rgb_np = self.cv_bridge_.imgmsg_to_cv2(left_msg.rgb)
+        if(left_rgb_np.dtype == np.float32):
             self.float_image_ = True
-            rgb_np = (rgb_np * 255).astype(np.uint8)
+            left_rgb_np = (left_rgb_np * 255).astype(np.uint8)
+        
+        left_rgb_np = self.cv_bridge_.imgmsg_to_cv2(left_msg.rgb)
         # rgb_np = np.array(msg.rgb,dtype=np.uint8).reshape((msg.segmentation.width,msg.segmentation.height,3))
-        if not os.path.exists('original_rgb'):
-            os.makedirs('original_rgb')
-        cv2.imwrite('original_rgb/rgb' + str(self.i_) +'.png',rgb_np)
-        depth_np = np.array(msg.depth_map,dtype=np.float64).reshape((msg.rgb.height,msg.rgb.width))
-        np.save(online_input_num_folder+'/depth.npy',depth_np)
-        cv2.imwrite('inf_mask.png',np.isinf(depth_np).astype(np.uint8)*255)
-        cv2.imwrite('nan_mask.png',np.isnan(depth_np).astype(np.uint8)*255)
-        depth_np[np.isinf(depth_np) & (depth_np < 0)] = 0.01
-        depth_np[np.isinf(depth_np) & (depth_np > 0)] = 10
-        depth_np[np.isnan(depth_np)] = 0
-        cv2.imwrite('og_depth.png',self.normalize_depth_image(depth_np))
-        panda_ur5_gripper_joints = np.array(msg.joints)
+        left_depth_np = np.array(left_msg.depth_map,dtype=np.float64).reshape((left_msg.rgb.height,left_msg.rgb.width))
+        left_depth_np[np.isinf(left_depth_np) & (left_depth_np < 0)] = 0.01
+        left_depth_np[np.isinf(left_depth_np) & (left_depth_np > 0)] = 10
+        left_depth_np[np.isnan(left_depth_np)] = 0
+        if(left_rgb_np.dtype == np.float32):
+            self.float_image_ = True
+            left_rgb_np = (left_rgb_np * 255).astype(np.uint8)
+
+        right_rgb_np = self.cv_bridge_.imgmsg_to_cv2(right_msg.rgb)
+        # rgb_np = np.array(msg.rgb,dtype=np.uint8).reshape((msg.segmentation.width,msg.segmentation.height,3))
+        right_depth_np = np.array(right_msg.depth_map,dtype=np.float64).reshape((right_msg.rgb.height,right_msg.rgb.width))
+        right_depth_np[np.isinf(right_depth_np) & (right_depth_np < 0)] = 0.01
+        right_depth_np[np.isinf(right_depth_np) & (right_depth_np > 0)] = 10
+        right_depth_np[np.isnan(right_depth_np)] = 0
+        if(right_rgb_np.dtype == np.float32):
+            self.float_image_ = True
+            right_rgb_np = (right_rgb_np * 255).astype(np.uint8)
+
+        panda_ur5_gripper_joints = np.array(msg.data_pieces[0].joints)
+        real_ee_gripper_joint = panda_ur5_gripper_joints[-1]
         panda_ur5_gripper_joints = panda_ur5_gripper_joints[:-1]
         ee_pose = self.panda_ur5_gripper_solver_.fk(panda_ur5_gripper_joints)
         end_effector_rotation_with_no_translation = np.array([[0,-1,0,0],[1,0,0,0],[0,0,1,0],[0,0,0,1]])
@@ -1160,25 +1252,30 @@ class WriteData(Node):
                 qout = self.q_init_
         print("Bound xyz: " + str(b_xyz))
         self.q_init_ = qout
-        # self.q_init_ = np.array([-0.53852111,  0.08224237,  0.53535473, -2.26215458, -0.0946562 ,2.28648186, -0.10421298])
         panda_ur5_arm_joints = panda_ur5_gripper_joints.tolist()
-        panda_ur5_gripper_joint = 0.0
+        panda_ur5_gripper_joint = 0.8 * real_ee_gripper_joint
         panda_ur5_gripper_joints = [panda_ur5_gripper_joint] * 6
         panda_arm_joints = qout.tolist()
-        panda_gripper_joint = 0.04
+        panda_gripper_joint = -0.04 * real_ee_gripper_joint + 0.04
         panda_gripper_joints = [panda_gripper_joint] * 2
         full_joint_list = []
-        
+
         full_joint_list.extend(panda_arm_joints)
         full_joint_list.extend(panda_ur5_arm_joints)
+        full_joint_list.extend(panda_gripper_joints)
+        full_joint_list.extend(panda_ur5_gripper_joints)
         qout_msg = Float64MultiArray()
         qout_msg.data = full_joint_list
         self.ur5_and_panda_joint_command_publisher_.publish(qout_msg)
-        self.real_rgb_ = msg.rgb
-        self.real_depth_ = depth_np
+        self.left_real_rgb_ = left_msg.rgb
+        self.right_real_rgb_ = right_msg.rgb
+
+        self.left_real_depth_ = left_depth_np
+        self.right_real_depth_ = right_depth_np
         self.real_qout_list_ = full_joint_list
         end_time = time.time()
         print("Algo time Part 1: " + str(end_time - start_time) + " seconds")
+
         # else:
         #     qout = self.panda_panda_gripper_solver_.ik(ee_pose,qinit=self.q_init_,bx=1e-3,by=1e-3,bz=1e-3)
         #     print("WARNING HIT IK ON FRANKA ERROR")

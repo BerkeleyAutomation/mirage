@@ -3,7 +3,6 @@
 import rclpy
 from rclpy.node import Node
 import trimesh
-import open3d as o3d
 from std_msgs.msg import Header, Float64MultiArray,Bool
 from sensor_msgs.msg import PointCloud2, PointField, CameraInfo, Image
 import numpy as np
@@ -28,7 +27,6 @@ from sensor_msgs.msg import JointState
 from tracikpy import TracIKSolver
 from mdh.kinematic_chain import KinematicChain
 from mdh import UnReachable
-import kinpy as kp
 from geometry_msgs.msg import Vector3, Quaternion
 from scipy.spatial.transform import Rotation as R
 from message_filters import ApproximateTimeSynchronizer, Subscriber
@@ -43,11 +41,10 @@ class WriteData(Node):
         self.debug_ = True
         self.float_image_ = False
         file_directory = pathlib.Path(__file__).parent.resolve()
-        self.panda_panda_gripper_urdf_ = os.path.join(file_directory,'../../../../src/gazebo_env/description/urdf/panda_gripper_ik_real.urdf')        
-        self.panda_panda_gripper_solver_ = TracIKSolver(self.panda_panda_gripper_urdf_,"panda_link0","panda_ee")
-        self.panda_ur5_gripper_urdf_ = os.path.join(file_directory,'../../../../src/gazebo_env/description/urdf/panda_ur5_gripper_ik_real.urdf')
-        self.chain_ = kp.build_chain_from_urdf(open(self.panda_panda_gripper_urdf_).read())
-        self.panda_ur5_gripper_solver_ = TracIKSolver(self.panda_ur5_gripper_urdf_,"panda_with_ur5_gripper_link0","ur5_ee_gripper")
+        self.panda_urdf_ = os.path.join(file_directory,'../../../../src/gazebo_env/description/urdf/panda_gripper_ik_real.urdf')        
+        self.panda_solver_ = TracIKSolver(self.panda_urdf_,"panda_link0","panda_ee")
+        self.ur5_urdf_ = os.path.join(file_directory,'../../../../src/gazebo_env/description/urdf/ur5_ik_real.urdf')
+        self.ur5_solver_ = TracIKSolver(self.ur5_urdf_,"base_link","ur5_ee_gripper")
 
         # real_camera_link to world and then multiply translation by 1000
         # self.camera_to_world_ = np.array([[0,1,0,0],
@@ -72,10 +69,8 @@ class WriteData(Node):
         self.ur5_depth_image_subscriber_ = Subscriber(self,Image,'/ur5_camera/depth/image_raw')
         self.panda_rgb_image_subscriber_ = Subscriber(self,Image,'/panda_camera/image_raw')
         self.panda_depth_image_subscriber_ = Subscriber(self,Image,'/panda_camera/depth/image_raw')
-        self.gazebo_time_synchronizer_ = ApproximateTimeSynchronizer([self.joint_state_subscriber_,self.ur5_rgb_image_subscriber_,self.ur5_depth_image_subscriber_,self.panda_rgb_image_subscriber_,self.panda_depth_image_subscriber_],1,0.2)
-        self.gazebo_time_synchronizer_.registerCallback(self.gazeboCallback)
         self.subscription_ = self.create_subscription(
-            InputFilesRobosuite,
+            InputFilesRealDataMulti,
             '/input_files',
             self.listenerCallback,
             1)
@@ -87,7 +82,7 @@ class WriteData(Node):
         self.joint_state_msg = JointState()
 
         #Harcoding start position
-        self.q_init_ = np.array([-0.53852111,  0.08224237,  0.53535473, -2.26215458, -0.0946562 ,2.28648186, -0.10421298])
+        self.q_init_ = np.array([-0.56332457,  0.06948572,  0.5227356,  -2.26363611, -0.11123186,  2.28321218, -0.09410787])
         
         self.urdf_xacro_path_ = os.path.join(FindPackageShare(package="gazebo_env").find("gazebo_env"),"urdf","panda_arm_hand_only.urdf.xacro")
         xacro_command = "ros2 run xacro xacro " + self.urdf_xacro_path_
@@ -109,8 +104,10 @@ class WriteData(Node):
         self.publishers_ = []
         self.subscribers_ = []
         self.timers_ = []
-        self.real_rgb_ = None
-        self.real_depth_ = None
+        self.left_real_rgb_ = None
+        self.right_real_rgb_ = None
+        self.left_real_depth_ = None
+        self.right_real_depth_ = None
         self.real_seg_ = None
         self.real_qout_list_ = None
         self.i_ = -1
@@ -135,52 +132,67 @@ class WriteData(Node):
             1
         )
 
-        self.ur5_rgb_ = None
-        self.ur5_depth_ = None
-        self.panda_rgb_ = None
-        self.panda_depth_ = None
-        self.panda_no_gripper_rgb_ = None
-        self.panda_no_gripper_depth_ = None
-        
-        self.ur5_camera_color_subscription_ = self.create_subscription(
+        self.ur5_left_rgb_ = None
+        self.ur5_left_depth_ = None
+        self.panda_left_rgb_ = None
+        self.panda_left_depth_ = None
+        self.ur5_left_camera_color_subscription_ = self.create_subscription(
             Image,
-            '/ur5_camera/image_raw',
-            self.ur5RgbCallback,
+            '/ur5_left_camera/image_raw',
+            self.ur5LeftRgbCallback,
             1
         )
 
-        self.ur5_camera_depth_subscription_ = self.create_subscription(
+        self.ur5_left_camera_depth_subscription_ = self.create_subscription(
             Image,
-            '/ur5_camera/depth/image_raw',
-            self.ur5DepthCallback,
+            '/ur5_left_camera/depth/image_raw',
+            self.ur5LeftDepthCallback,
             1
         )
 
-        self.panda_camera_color_subscription_ = self.create_subscription(
+        self.panda_left_camera_color_subscription_ = self.create_subscription(
             Image,
-            '/panda_camera/image_raw',
-            self.pandaRgbCallback,
+            '/panda_left_camera/image_raw',
+            self.pandaLeftRgbCallback,
             1
         )
 
-        self.panda_camera_depth_subscription_ = self.create_subscription(
+        self.panda_left_camera_depth_subscription_ = self.create_subscription(
             Image,
-            '/panda_camera/depth/image_raw',
-            self.pandaDepthCallback,
-            1
-        )
-        
-        self.panda_no_gripper_camera_color_subscription_ = self.create_subscription(
-            Image,
-            '/panda_no_gripper_camera/image_raw',
-            self.pandaNoGripperRgbCallback,
+            '/panda_left_camera/depth/image_raw',
+            self.pandaLeftDepthCallback,
             1
         )
 
-        self.panda_no_gripper_camera_depth_subscription_ = self.create_subscription(
+        self.ur5_right_rgb_ = None
+        self.ur5_right_depth_ = None
+        self.panda_right_rgb_ = None
+        self.panda_right_depth_ = None
+        self.ur5_right_camera_color_subscription_ = self.create_subscription(
             Image,
-            '/panda_no_gripper_camera/depth/image_raw',
-            self.pandaNoGripperDepthCallback,
+            '/ur5_right_camera/image_raw',
+            self.ur5RightRgbCallback,
+            1
+        )
+
+        self.ur5_right_camera_depth_subscription_ = self.create_subscription(
+            Image,
+            '/ur5_right_camera/depth/image_raw',
+            self.ur5RightDepthCallback,
+            1
+        )
+
+        self.panda_right_camera_color_subscription_ = self.create_subscription(
+            Image,
+            '/panda_right_camera/image_raw',
+            self.pandaRightRgbCallback,
+            1
+        )
+
+        self.panda_right_camera_depth_subscription_ = self.create_subscription(
+            Image,
+            '/panda_right_camera/depth/image_raw',
+            self.pandaRightDepthCallback,
             1
         )
 
@@ -190,139 +202,140 @@ class WriteData(Node):
             self.noTimeGazeboCallback,
             1
         )
+
+        self.ur5_left_no_gripper_rgb_ = None
+        self.ur5_left_no_gripper_depth_ = None
+        self.ur5_right_no_gripper_rgb_ = None
+        self.ur5_right_no_gripper_depth_ = None
+        self.ur5_no_gripper_left_camera_color_subscription_ = self.create_subscription(
+            Image,
+            '/ur5_no_gripper_left_camera/image_raw',
+            self.ur5LeftNoGripperRgbCallback,
+            1
+        )
+
+        self.ur5_no_gripper_left_camera_depth_subscription_ = self.create_subscription(
+            Image,
+            '/ur5_no_gripper_left_camera/depth/image_raw',
+            self.ur5LeftNoGripperDepthCallback,
+            1
+        )
+
+        self.ur5_no_gripper_right_camera_color_subscription_ = self.create_subscription(
+            Image,
+            '/ur5_no_gripper_right_camera/image_raw',
+            self.ur5RightNoGripperRgbCallback,
+            1
+        )
+
+        self.panda_no_gripper_right_camera_depth_subscription_ = self.create_subscription(
+            Image,
+            '/ur5_no_gripper_right_camera/depth/image_raw',
+            self.ur5RightNoGripperDepthCallback,
+            1
+        )
+
         self.cv_bridge_ = CvBridge()
         self.mask_image_publisher_ = self.create_publisher(Image,"mask_image",1)
         self.ready_for_next_input_publisher_ = self.create_publisher(Bool,"/ready_for_next_input",1)
-        timer_period = 0.5
-        self.links_info_ = []
-        self.original_meshes_ = []
-        for link in root.iter('link'):
-            element_name1 = "visual"
-            found_element1 = link.find(".//" + element_name1)
-            element_name2 = "geometry"
-            found_element2 = link.find(".//" + element_name2)
-            element_name3 = "mesh"
-            found_element3 = link.find(".//" + element_name3)
-            if (found_element1 is not None) and (found_element2 is not None) and (found_element3 is not None):
-                link_name = link.attrib.get('name')
-                for visual in link.iter("visual"):
-                    origin_element = visual.find(".//origin")
-                    rpy_str = origin_element.attrib.get('rpy')
-                    xyz_str = origin_element.attrib.get('xyz')
-                    for geometry in visual.iter("geometry"):
-                        for mesh in geometry.iter("mesh"):
-                            filename = mesh.attrib.get('filename')[7:]
-                            #publisher = self.create_publisher(PointCloud2,link_name+"_pointcloud",10)
-                            #publisher_camera = self.create_publisher(PointCloud2,link_name+"_pointcloud_camera",10)
-                            #self.publishers_.append(publisher)
-                            #self.publishers_.append(publisher_camera)
-                            #subscriber = Subscriber(self,PointCloud2,link_name+"_pointcloud")
-                            #self.subscribers_.append(subscriber)
-                            mesh = self.prelimMeshFast(filename,link_name,rpy_str,xyz_str)
-                            self.original_meshes_.append(mesh)
-                            self.links_info_.append([filename,link_name,rpy_str,xyz_str])
-                            #timer = self.create_timer(timer_period,partial(self.debugTimerCallback,filename,link_name,publisher,publisher_camera,rpy_str,xyz_str))
-                            #self.timers_.append(timer)
+       
         self.full_publisher_ = self.create_publisher(PointCloud2,"full_pointcloud",1)
         self.inpainted_publisher_ = self.create_publisher(MultipleInpaintImages,"inpainted_image",1)
         #self.full_subscriber_ = self.create_subscription(PointCloud2,'full_pointcloud',self.fullPointcloudCallback,10)
-        self.full_mask_image_publisher_ = self.create_publisher(Image,"full_mask_image",1)
+        self.full_mask_image_publisher_ = self.create_publisher(MultipleInpaintImages,"full_mask_image",1)
         self.updated_joints_ = False
         self.is_ready_ = True
     
-    def ur5RgbCallback(self,msg):
-        self.ur5_rgb_ = msg
+    def ur5LeftRgbCallback(self,msg):
+        self.ur5_left_rgb_ = msg
     
-    def ur5DepthCallback(self,msg):
-        self.ur5_depth_ = msg
+    def ur5LeftDepthCallback(self,msg):
+        self.ur5_left_depth_ = msg
 
-    def pandaRgbCallback(self,msg):
-        self.panda_rgb_ = msg
+    def pandaLeftRgbCallback(self,msg):
+        self.panda_left_rgb_ = msg
     
-    def pandaDepthCallback(self,msg):
-        self.panda_depth_ = msg
-        
-    def pandaNoGripperRgbCallback(self,msg):
-        self.panda_no_gripper_rgb_ = msg
+    def pandaLeftDepthCallback(self,msg):
+        self.panda_left_depth_ = msg
+
+    def ur5RightRgbCallback(self,msg):
+        self.ur5_right_rgb_ = msg
     
-    def pandaNoGripperDepthCallback(self,msg):
-        self.panda_no_gripper_depth_ = msg
+    def ur5RightDepthCallback(self,msg):
+        self.ur5_right_depth_ = msg
+
+    def pandaRightRgbCallback(self,msg):
+        self.panda_right_rgb_ = msg
+    
+    def pandaRightDepthCallback(self,msg):
+        self.panda_right_depth_ = msg
+
+    def ur5LeftNoGripperRgbCallback(self,msg):
+        self.ur5_left_no_gripper_rgb_ = msg
+
+    def ur5LeftNoGripperDepthCallback(self,msg):
+        self.ur5_left_no_gripper_depth_ = msg
+
+    def ur5RightNoGripperRgbCallback(self,msg):
+        self.ur5_right_no_gripper_rgb_ = msg
+
+    def ur5RightNoGripperDepthCallback(self,msg):
+        self.ur5_right_no_gripper_depth_ = msg
 
     def noTimeGazeboCallback(self,joint_msg):
         start_time = time.time()
-        real_rgb = self.ur5_rgb_
-        real_depth = self.ur5_depth_
-        gazebo_rgb = self.panda_rgb_
-        gazebo_depth = self.panda_depth_
-        gazebo_no_gripper_rgb = self.panda_no_gripper_rgb_
-        gazebo_no_gripper_depth = self.panda_no_gripper_depth_
+        left_inpainted_image, left_mask = self.doFullInpainting(self.ur5_left_rgb_,self.ur5_left_depth_,self.panda_left_rgb_,self.panda_left_depth_,self.ur5_left_no_gripper_depth_,self.left_real_rgb_,self.left_real_depth_)
+        right_inpainted_image, right_mask = self.doFullInpainting(self.ur5_right_rgb_,self.ur5_right_depth_,self.panda_right_rgb_,self.panda_right_depth_,self.ur5_right_no_gripper_depth_,self.right_real_rgb_,self.right_real_depth_)
+        inpainted_image_msg = MultipleInpaintImages()
+        mask_image_msg = MultipleInpaintImages()
+        inpainted_image_msg.images = [self.cv_bridge_.cv2_to_imgmsg(left_inpainted_image),self.cv_bridge_.cv2_to_imgmsg(right_inpainted_image),self.cv_bridge_.cv2_to_imgmsg(left_mask),self.cv_bridge_.cv2_to_imgmsg(right_mask)]
+        mask_image_msg.images = []
+        self.inpainted_publisher_.publish(inpainted_image_msg)
+        self.full_mask_image_publisher_.publish(mask_image_msg)
+        inpaint_number = str(self.i_).zfill(5)
+        if not os.path.exists('left_inpainting'):
+            os.makedirs('left_inpainting')
+        if not os.path.exists('right_inpainting'):
+            os.makedirs('right_inpainting')
+        if not os.path.exists('left_mask'):
+            os.makedirs('left_mask')
+        if not os.path.exists('right_mask'):
+            os.makedirs('right_mask')
+        if(self.float_image_):
+            left_inpainted_image = (left_inpainted_image * 255).astype(np.uint8)
+            right_inpainted_image = (right_inpainted_image * 255).astype(np.uint8)
+            left_mask = (left_mask * 255).astype(np.uint8)
+            right_mask = (right_mask * 255).astype(np.uint8)
+        cv2.imwrite('left_inpainting/inpaint'+ str(inpaint_number) +'.png',left_inpainted_image)
+        cv2.imwrite('right_inpainting/inpaint'+ str(inpaint_number) +'.png',right_inpainted_image)
+        cv2.imwrite('left_mask/mask'+ str(inpaint_number) +'.png',left_mask)
+        cv2.imwrite('right_mask/mask'+ str(inpaint_number) +'.png',right_mask)
+
+    def doFullInpainting(self,real_rgb,real_depth,gazebo_rgb,gazebo_depth,gazebo_no_gripper_depth,world_rgb,world_depth):
         real_rgb_np = self.cv_bridge_.imgmsg_to_cv2(real_rgb)
         real_depth_np = self.cv_bridge_.imgmsg_to_cv2(real_depth)
         gazebo_rgb_np = self.cv_bridge_.imgmsg_to_cv2(gazebo_rgb)
+        
         gazebo_depth_np = self.cv_bridge_.imgmsg_to_cv2(gazebo_depth)
-        gazebo_no_gripper_rgb_np = self.cv_bridge_.imgmsg_to_cv2(gazebo_no_gripper_rgb)
-        gazebo_no_gripper_depth_np = self.cv_bridge_.imgmsg_to_cv2(gazebo_no_gripper_depth)
         cv2.imwrite('real_rgb.png',real_rgb_np)
         cv2.imwrite('real_depth.png',self.normalize_depth_image(real_depth_np))
         cv2.imwrite('gazebo_rgb.png',gazebo_rgb_np)
         cv2.imwrite('gazebo_depth.png',self.normalize_depth_image(gazebo_depth_np))
-        cv2.imwrite('gazebo_no_gripper_rgb.png',gazebo_no_gripper_rgb_np)
-        cv2.imwrite('gazebo_no_gripper_depth.png',self.normalize_depth_image(gazebo_no_gripper_depth_np))
+        gazebo_no_gripper_depth_np = self.cv_bridge_.imgmsg_to_cv2(gazebo_no_gripper_depth)
         
         real_seg_np = (real_depth_np < 8).astype(np.uint8)
         real_seg_255_np = 255 * real_seg_np
         gazebo_seg_np = (gazebo_depth_np < 8).astype(np.uint8)
         gazebo_seg_255_np = 255 * gazebo_seg_np
+        cv2.imwrite('real_seg.png',real_seg_255_np)
+        cv2.imwrite('gazebo_seg.png',gazebo_seg_255_np)
         real_no_gripper_seg_255_np = (gazebo_no_gripper_depth_np < 8).astype(np.uint8)
         real_no_gripper_seg_255_np = 255 * real_no_gripper_seg_255_np
-        cv2.imwrite('real_seg.png',real_seg_255_np)
-        cv2.imwrite('gazebo_seg.png',gazebo_seg_255_np)
-        cv2.imwrite('real_seg2.png',real_no_gripper_seg_255_np)
-
-        real_rgb = self.real_rgb_
-        real_depth = self.real_depth_
+        real_rgb = world_rgb
+        real_depth = world_depth
         real_seg = real_seg_255_np
         gazebo_rgb_np = cv2.cvtColor(gazebo_rgb_np,cv2.COLOR_BGR2RGB)
-        
-        self.dummyInpaintingEarly(real_rgb,real_seg,real_no_gripper_seg_255_np,gazebo_rgb_np,gazebo_seg_255_np)
-        #self.inpainting(real_rgb,real_depth,real_seg,gazebo_rgb_np,gazebo_seg_255_np,gazebo_depth_np)
-        self.updated_joints_ = False
-        end_time = time.time()
-        print("Algo time Part 3: " + str(end_time - start_time) + " seconds")
-        return
-
-    def gazeboCallback(self,joints,real_rgb,real_depth,gazebo_rgb,gazebo_depth,):
-        return
-        start_time = time.time()
-        real_rgb_np = self.cv_bridge_.imgmsg_to_cv2(real_rgb)
-        real_depth_np = self.cv_bridge_.imgmsg_to_cv2(real_depth)
-        gazebo_rgb_np = self.cv_bridge_.imgmsg_to_cv2(gazebo_rgb)
-        
-        gazebo_depth_np = self.cv_bridge_.imgmsg_to_cv2(gazebo_depth)
-        cv2.imwrite('real_rgb.png',real_rgb_np)
-        cv2.imwrite('real_depth.png',self.normalize_depth_image(real_depth_np))
-        cv2.imwrite('gazebo_rgb.png',gazebo_rgb_np)
-        cv2.imwrite('gazebo_depth.png',self.normalize_depth_image(gazebo_depth_np))
-        
-        real_seg_np = (real_depth_np < 8).astype(np.uint8)
-        real_seg_255_np = 255 * real_seg_np
-        gazebo_seg_np = (gazebo_depth_np < 8).astype(np.uint8)
-        gazebo_seg_255_np = 255 * gazebo_seg_np
-        cv2.imwrite('real_seg.png',real_seg_255_np)
-        cv2.imwrite('gazebo_seg.png',gazebo_seg_255_np)
-        real_rgb = self.real_rgb_
-        real_depth = self.real_depth_
-        real_seg = real_seg_255_np
-        gazebo_rgb_np = cv2.cvtColor(gazebo_rgb_np,cv2.COLOR_BGR2RGB)
-        self.inpainting(real_rgb,real_depth,real_seg,gazebo_rgb_np,gazebo_seg_255_np,gazebo_depth_np)
-        self.updated_joints_ = False
-        end_time = time.time()
-        print("Algo time Part 3: " + str(end_time - start_time) + " seconds")
-        return
-        #if(np.linalg.norm(joint_command_np - gazebo_joints_np,2) < 0.01):
-            
-        #elif(np.linalg.norm(joint_command_np - gazebo_joints_np,2) < 0.01 and not self.updated_joints_):
-        #    self.updated_joints_ = True
+        return self.dummyInpaintingEarly(real_rgb,real_seg,real_no_gripper_seg_255_np,gazebo_rgb_np,gazebo_seg_255_np)
 
     def cameraInfoCallback(self,msg):
         if(self.is_ready_):
@@ -334,72 +347,6 @@ class WriteData(Node):
             self.original_image_ = self.cv_bridge_.imgmsg_to_cv2(msg,desired_encoding="passthrough")
             #cv2.imwrite('gazebo_rgb.png',self.original_image_)
 
-    def prelimMeshFast(self,filename,link_name,rpy_str,xyz_str):
-        # RPY is in ZYX I'm pretty sure
-        mesh_scene = trimesh.load(filename)
-        if(link_name == "panda_link6"):
-            meshes = mesh_scene.geometry
-            for mesh in meshes:
-                if(mesh != 'Shell006_000-mesh'):
-                    vertices = o3d.utility.Vector3dVector(meshes[mesh].vertices)
-                    triangles = o3d.utility.Vector3iVector(meshes[mesh].faces)
-                    open3d_mesh = o3d.geometry.TriangleMesh(vertices, triangles)
-                    open3d_mesh.translate(np.array([0,0,-0.028439417985386614/2]))
-                    meshes[mesh] = trimesh.Trimesh(vertices=open3d_mesh.vertices,faces=open3d_mesh.triangles)
-            #meshes['Shell012_000-mesh'] = trimesh.Trimesh(vertices=open3d_mesh.vertices,faces=open3d_mesh.triangles)
-            mesh = trimesh.util.concatenate(tuple(trimesh.Trimesh(vertices=g.vertices, faces=g.faces)
-                                            for g in meshes.values()))
-
-        mesh = trimesh.util.concatenate(tuple(trimesh.Trimesh(vertices=g.vertices, faces=g.faces)
-                                            for g in mesh_scene.geometry.values()))
-        # Convert Trimesh to Open3D TriangleMesh
-        vertices = o3d.utility.Vector3dVector(mesh.vertices)
-        triangles = o3d.utility.Vector3iVector(mesh.faces)
-        open3d_mesh = o3d.geometry.TriangleMesh(vertices, triangles)
-        test_pcd = open3d_mesh.sample_points_uniformly(number_of_points=50000)
-        test_pcd_data = np.asarray(test_pcd.points)
-        
-        diff = max(np.max(test_pcd_data[:, 0]) - np.min(test_pcd_data[:, 0]),np.max(test_pcd_data[:, 1]) - np.min(test_pcd_data[:, 1]),np.max(test_pcd_data[:, 2]) - np.min(test_pcd_data[:, 2]))
-        # Checks to make sure units are in mm instead of m (We convert uniformly to meters later)
-        
-        if(diff < 1):
-            open3d_mesh.vertices = o3d.utility.Vector3dVector(np.asarray(open3d_mesh.vertices) * 1000)
-        else:
-            R = np.array([[-1,0,0],[0,0,1],[0,1,0]])
-            open3d_mesh.rotate(R,[0,0,0])
-        test_pcd = open3d_mesh.sample_points_uniformly(number_of_points=50000)
-        #mesh_coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=100, origin=[0,0,0])
-        #o3d.visualization.draw_geometries([test_pcd,mesh_coordinate_frame])
-        rpy_str_list = rpy_str.split()
-        rpy_floats = [float(x) for x in rpy_str_list]
-        rpy_np = np.array(rpy_floats)
-        xyz_str_list = xyz_str.split()
-        xyz_floats = [float(x) for x in xyz_str_list]
-        if(link_name == "panda_link1"):
-            xyz_floats = [0, 0, -0.1929999099]
-        elif(link_name == "panda_link3"):
-            xyz_floats = [0,0,-0.1219998142]
-        elif(link_name == "panda_link5"):
-            xyz_floats = [0,0,-0.2630000007]
-        elif(link_name == "panda_link7"):
-            rpy_np = np.array([0,0,-math.pi/4])
-            xyz_floats = [0,0,0.03679997502 + (0.028439417985386614/2)]
-        xyz_np = 1000 * np.array(xyz_floats)
-        R2 = self.eulerToR(rpy_np)
-        # Create a 4x4 identity matrix
-        transform_matrix = np.eye(4)
-
-        # Replace the top-left 3x3 submatrix with the rotation matrix
-        transform_matrix[:3, :3] = R2
-
-        # Set the first three elements in the fourth column to the translation vector
-        transform_matrix[:3, 3] = xyz_np
-
-        # Set the bottom-right element to 1
-        transform_matrix[3, 3] = 1.0
-        open3d_mesh.transform(transform_matrix)
-        return open3d_mesh
-    
     def getPixels(self,msg):
         if(self.is_ready_):
             msg_data = point_cloud2.read_points(msg)
@@ -472,47 +419,8 @@ class WriteData(Node):
         # For example, to scale it to [0, 255] for visualization:
         normalized_depth_image = (normalized_depth_image * 255).astype(np.uint8)
         return normalized_depth_image
-    
-    def convertPointcloudToDepth(self,pointcloud):
-        if(type(pointcloud) == str):
-            pointcloud_np = np.load(pointcloud)
-        else:
-            pointcloud_np = pointcloud
-            world_to_camera = np.array([[-5.55111512e-17,  2.58174524e-01, -9.66098295e-01,
-                    1.60000000e+00],
-                [ 1.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-                    0.00000000e+00],
-                [ 0.00000000e+00, -9.66098295e-01, -2.58174524e-01,
-                    1.45000000e+00],
-                [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-                    1.00000000e+00]])
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(pointcloud_np)
-            pcd.transform(np.linalg.inv(world_to_camera))
-            pointcloud_np = np.asarray(pcd.points)
 
-            # loaded = np.load('/home/lawrence/cross_embodiment_ws/src/gazebo_env/robotsuite_outputs/UR5e_output3.npy', allow_pickle=True)
-
-        depth_data = pointcloud_np[:,2]
-
-        fx = self.robosuite_intrinsic_matrix_[0,0]
-        fy = self.robosuite_intrinsic_matrix_[1,1]
-        cx = self.robosuite_intrinsic_matrix_[0,2]
-        cy = self.robosuite_intrinsic_matrix_[1,2]
-        u_pixels = ((pointcloud_np[:,0]*fx) / depth_data) + cx
-        u_pixels = np.round(u_pixels).astype(int)
-        v_pixels = ((pointcloud_np[:,1]*fy) / depth_data) + cy
-        v_pixels = np.round(v_pixels).astype(int)
-        pixels = np.vstack((u_pixels,v_pixels)).T
-        pixels_to_points = {tuple(pixel): tuple(point) for pixel, point in zip(pixels,pointcloud_np)}
-        depth_image = np.zeros(self.robosuite_image_shape_)
-        for pixel,point in pixels_to_points.items():
-            depth_image[pixel[1],pixel[0]] = point[2]
-        return depth_image
-    
-    # RGB AND SEG FILE ARE THE UR5 AND GAZEBO IS THE PANDA AND NO GRIPPER SEG IS UR4
     def dummyInpaintingEarly(self,rgb,seg_file,seg_file_no_gripper,gazebo_rgb,gazebo_seg):
-        
         rgb = self.cv_bridge_.imgmsg_to_cv2(rgb)
         if(rgb.dtype == np.float32):
             rgb = (rgb * 255).astype(np.uint8)
@@ -523,14 +431,16 @@ class WriteData(Node):
         _, gazebo_seg = cv2.threshold(gazebo_seg, 128, 255, cv2.THRESH_BINARY)
         _, seg_file = cv2.threshold(seg_file, 128, 255, cv2.THRESH_BINARY)
         _, seg_file_no_gripper = cv2.threshold(seg_file_no_gripper, 128, 255, cv2.THRESH_BINARY)
+        cv2.imwrite('seg_file.png',seg_file)
+        cv2.imwrite('seg_file_no_gripper.png',seg_file_no_gripper)
         seg_file_gripper = abs(seg_file - seg_file_no_gripper)
         seg_file_gripper = cv2.erode(seg_file_gripper,np.ones((3,3),np.uint8),iterations=3)
-        
+        seg_file_gripper = cv2.dilate(seg_file_gripper,np.ones((3,3),np.uint8),iterations=10)
         cv2.imwrite('seg_file_gripper.png',seg_file_gripper)
         gazebo_segmentation_mask_255 = gazebo_seg
         inverted_segmentation_mask_255_original = cv2.bitwise_not(seg_file_no_gripper)
         cv2.imwrite('inverted_mask1.png',inverted_segmentation_mask_255_original)
-        inverted_segmentation_mask_255 = cv2.erode(inverted_segmentation_mask_255_original,np.ones((3,3),np.uint8),iterations=40)
+        inverted_segmentation_mask_255 = cv2.erode(inverted_segmentation_mask_255_original,np.ones((3,3),np.uint8),iterations=30)
         cv2.imwrite('inverted_mask2.png',inverted_segmentation_mask_255)
         eroded_segmentation_mask_255 = cv2.bitwise_not(inverted_segmentation_mask_255)
         cv2.imwrite('eroded_mask1.png',eroded_segmentation_mask_255)
@@ -560,28 +470,14 @@ class WriteData(Node):
         inpainted_image = gazebo_only + background_only
         cv2.imwrite('background_only4.png',inpainted_image)
         better_dilated_blend_mask = cv2.bitwise_not(inverted_seg_file)*cv2.bitwise_not(gazebo_seg)*255
-        inpaint_number = str(self.i_).zfill(5)
-        if not os.path.exists('inpainting'):
-            os.makedirs('inpainting')
-        if not os.path.exists('mask'):
-            os.makedirs('mask')
-        cv2.imwrite('inpainting/inpaint'+ str(inpaint_number) +'.png',inpainted_image)
-        cv2.imwrite('mask/mask'+ str(inpaint_number) +'.png',better_dilated_blend_mask.astype(np.uint8))
+        diffusion_input = cv2.bitwise_and(inpainted_image,inpainted_image,mask=cv2.bitwise_not(better_dilated_blend_mask))
         if(self.float_image_):
             inpainted_image = (inpainted_image / 255.0).astype(np.float32)
-        inpainted_image_msg = self.cv_bridge_.cv2_to_imgmsg(inpainted_image)
-        mask_image_msg = self.cv_bridge_.cv2_to_imgmsg(better_dilated_blend_mask.astype(np.uint8),encoding="mono8")
-        inpainted_image_msg.header.stamp = self.get_clock().now().to_msg()
-        mask_image_msg.header.stamp = inpainted_image_msg.header.stamp
-        inpainted_image_msgs = MultipleInpaintImages()
-        inpainted_image_msgs.images = [inpainted_image_msg,inpainted_image_msg]
-        self.inpainted_publisher_.publish(inpainted_image_msgs)
-        self.mask_image_publisher_.publish(mask_image_msg)
-
+            diffusion_input = (diffusion_input / 255.0).astype(np.float32)
+        return inpainted_image,diffusion_input
+    
     def dummyInpainting(self,rgb,seg_file,gazebo_rgb,gazebo_seg):
         rgb = self.cv_bridge_.imgmsg_to_cv2(rgb)
-        if(rgb.dtype == np.float32):
-            rgb = (rgb * 255).astype(np.uint8)
         # rgb = cv2.resize(rgb,(128,128))
         # seg_file = cv2.resize(seg_file,(128,128))
         # gazebo_rgb = cv2.resize(gazebo_rgb,(128,128))
@@ -590,7 +486,7 @@ class WriteData(Node):
         gazebo_segmentation_mask_255 = gazebo_seg
         inverted_segmentation_mask_255_original = cv2.bitwise_not(gazebo_seg)
         cv2.imwrite('inverted_mask1.png',inverted_segmentation_mask_255_original)
-        inverted_segmentation_mask_255 = cv2.erode(inverted_segmentation_mask_255_original,np.ones((3,3),np.uint8),iterations=40)
+        inverted_segmentation_mask_255 = cv2.erode(inverted_segmentation_mask_255_original,np.ones((3,3),np.uint8),iterations=10)
         cv2.imwrite('inverted_mask2.png',inverted_segmentation_mask_255)
         outline_mask = abs(inverted_segmentation_mask_255 - inverted_segmentation_mask_255_original)*255
         gazebo_only = cv2.bitwise_and(gazebo_rgb,gazebo_rgb,mask=gazebo_segmentation_mask_255)
@@ -600,17 +496,24 @@ class WriteData(Node):
         #gazebo_robot_only_lab[:,:,0] = np.where(gazebo_segmentation_mask_255 > 0, gazebo_robot_only_lab[:,:,0] + 150, gazebo_robot_only_lab[:,:,0])
         #gazebo_only = cv2.cvtColor(gazebo_robot_only_lab,cv2.COLOR_LAB2BGR)
         cv2.imwrite('gazebo_robot_only.png',gazebo_only)
-        background_only = cv2.bitwise_and(rgb,rgb,mask=inverted_segmentation_mask_255)
-        cv2.imwrite('background_only.png',background_only)
-        background_only = cv2.inpaint(background_only,cv2.bitwise_not(inverted_segmentation_mask_255),3,cv2.INPAINT_TELEA)
-        cv2.imwrite('background_only2.png',background_only)
+        background_only = cv2.bitwise_and(rgb,rgb,mask=inverted_segmentation_mask_255_original)
         inverted_seg_file_original = cv2.bitwise_not(seg_file)
+        #cv2.imwrite('inverted_seg_file_original.png',inverted_seg_file_original)
         inverted_seg_file = cv2.erode(inverted_seg_file_original,np.ones((3,3),np.uint8),iterations=3)
-        background_only = cv2.bitwise_and(background_only,background_only,mask=inverted_segmentation_mask_255_original)
-        cv2.imwrite('background_only3.png',background_only)
+        #cv2.imwrite('inverted_seg_file.png',inverted_seg_file)
+        background_only = cv2.bitwise_and(background_only,background_only,mask=inverted_seg_file)
+        #cv2.imwrite('background_only.png',background_only)
         inpainted_image = gazebo_only + background_only
-        cv2.imwrite('background_only4.png',inpainted_image)
+        #cv2.imwrite('no_fill.png',inpainted_image)
+
         better_dilated_blend_mask = cv2.bitwise_not(inverted_seg_file)*cv2.bitwise_not(gazebo_seg)*255
+        cv2_inpaint_image = cv2.inpaint(inpainted_image,better_dilated_blend_mask,3,cv2.INPAINT_TELEA)
+
+        target_color = (39,43,44)
+        target_mask = np.zeros_like(inpainted_image)
+        target_mask[:,:] = target_color
+        inpainted_image = np.where(better_dilated_blend_mask[:,:,None] != 0,target_mask,inpainted_image).astype(np.uint8)
+        # inpainted_image = cv2_inpaint_image
         inpaint_number = str(self.i_).zfill(5)
         if not os.path.exists('inpainting'):
             os.makedirs('inpainting')
@@ -619,14 +522,11 @@ class WriteData(Node):
         cv2.imwrite('inpainting/inpaint'+ str(inpaint_number) +'.png',inpainted_image)
         cv2.imwrite('mask/mask'+ str(inpaint_number) +'.png',better_dilated_blend_mask.astype(np.uint8))
         if(self.float_image_):
-            inpainted_image = (inpainted_image / 255.0).astype(np.float32)
-        inpainted_image_msg = self.cv_bridge_.cv2_to_imgmsg(inpainted_image)
+            import pdb
+            pdb.set_trace()
+        inpainted_image_msg = self.cv_bridge_.cv2_to_imgmsg(inpainted_image,encoding="bgr8")
         mask_image_msg = self.cv_bridge_.cv2_to_imgmsg(better_dilated_blend_mask.astype(np.uint8),encoding="mono8")
-        inpainted_image_msg.header.stamp = self.get_clock().now().to_msg()
-        mask_image_msg.header.stamp = inpainted_image_msg.header.stamp
-        inpainted_image_msgs = MultipleInpaintImages()
-        inpainted_image_msgs.images = [inpainted_image_msg,inpainted_image_msg]
-        self.inpainted_publisher_.publish(inpainted_image_msgs)
+        self.inpainted_publisher_.publish(inpainted_image_msg)
         self.mask_image_publisher_.publish(mask_image_msg)
 
 # better_blend_mask = joined_depth_argmin * real_segmentation_mask_255
@@ -871,105 +771,6 @@ class WriteData(Node):
                 self.full_mask_image_publisher_.publish(ros_mask_image)
                 self.inpainting(rgb,depth,segmentation,gazebo_masked_image,mask_image,msg)
 
-    def setupMesh(self,filename,link_name,rpy_str,xyz_str):
-        if(self.is_ready_):
-            # RPY is in ZYX I'm pretty sure
-            mesh_scene = trimesh.load(filename)
-            if(link_name == "panda_link6"):
-                meshes = mesh_scene.geometry
-                for mesh in meshes:
-                    if(mesh != 'Shell006_000-mesh'):
-                        vertices = o3d.utility.Vector3dVector(meshes[mesh].vertices)
-                        triangles = o3d.utility.Vector3iVector(meshes[mesh].faces)
-                        open3d_mesh = o3d.geometry.TriangleMesh(vertices, triangles)
-                        open3d_mesh.translate(np.array([0,0,-0.028439417985386614/2]))
-                        meshes[mesh] = trimesh.Trimesh(vertices=open3d_mesh.vertices,faces=open3d_mesh.triangles)
-                #meshes['Shell012_000-mesh'] = trimesh.Trimesh(vertices=open3d_mesh.vertices,faces=open3d_mesh.triangles)
-                mesh = trimesh.util.concatenate(tuple(trimesh.Trimesh(vertices=g.vertices, faces=g.faces)
-                                                for g in meshes.values()))
-
-            mesh = trimesh.util.concatenate(tuple(trimesh.Trimesh(vertices=g.vertices, faces=g.faces)
-                                                for g in mesh_scene.geometry.values()))
-            # Convert Trimesh to Open3D TriangleMesh
-            vertices = o3d.utility.Vector3dVector(mesh.vertices)
-            triangles = o3d.utility.Vector3iVector(mesh.faces)
-            open3d_mesh = o3d.geometry.TriangleMesh(vertices, triangles)
-            test_pcd = open3d_mesh.sample_points_uniformly(number_of_points=50000)
-            test_pcd_data = np.asarray(test_pcd.points)
-            
-            diff = max(np.max(test_pcd_data[:, 0]) - np.min(test_pcd_data[:, 0]),np.max(test_pcd_data[:, 1]) - np.min(test_pcd_data[:, 1]),np.max(test_pcd_data[:, 2]) - np.min(test_pcd_data[:, 2]))
-            # Checks to make sure units are in mm instead of m (We convert uniformly to meters later)
-            
-            if(diff < 1):
-                open3d_mesh.vertices = o3d.utility.Vector3dVector(np.asarray(open3d_mesh.vertices) * 1000)
-            else:
-                R = np.array([[-1,0,0],[0,0,1],[0,1,0]])
-                open3d_mesh.rotate(R,[0,0,0])
-            test_pcd = open3d_mesh.sample_points_uniformly(number_of_points=50000)
-            #mesh_coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=100, origin=[0,0,0])
-            #o3d.visualization.draw_geometries([test_pcd,mesh_coordinate_frame])
-            rpy_str_list = rpy_str.split()
-            rpy_floats = [float(x) for x in rpy_str_list]
-            rpy_np = np.array(rpy_floats)
-            xyz_str_list = xyz_str.split()
-            xyz_floats = [float(x) for x in xyz_str_list]
-            if(link_name == "panda_link1"):
-                xyz_floats = [0, 0, -0.1929999099]
-            elif(link_name == "panda_link3"):
-                xyz_floats = [0,0,-0.1219998142]
-            elif(link_name == "panda_link5"):
-                xyz_floats = [0,0,-0.2630000007]
-            elif(link_name == "panda_link7"):
-                rpy_np = np.array([0,0,-math.pi/4])
-                xyz_floats = [0,0,0.03679997502 + (0.028439417985386614/2)]
-            xyz_np = 1000 * np.array(xyz_floats)
-            R2 = self.eulerToR(rpy_np)
-            # Create a 4x4 identity matrix
-            transform_matrix = np.eye(4)
-
-            # Replace the top-left 3x3 submatrix with the rotation matrix
-            transform_matrix[:3, :3] = R2
-
-            # Set the first three elements in the fourth column to the translation vector
-            transform_matrix[:3, 3] = xyz_np
-
-            # Set the bottom-right element to 1
-            transform_matrix[3, 3] = 1.0
-            open3d_mesh.transform(transform_matrix)
-
-            transform = self.fks_[link_name]
-
-            position = Vector3()
-            quaternion = Quaternion()
-            position.x = transform.pos[0]
-            position.y = transform.pos[1]
-            position.z = transform.pos[2]
-
-            quaternion.w = transform.rot[0]
-            quaternion.x = transform.rot[1]
-            quaternion.y = transform.rot[2]
-            quaternion.z = transform.rot[3]
-
-            robot_fk = self.transformStampedToMatrix(quaternion,position)
-            t_matrix = self.camera_to_world_ @ robot_fk
-            open3d_mesh.transform(t_matrix)
-            return open3d_mesh
-            
-            # REQUIRES CAMERA TO BE IN GAZEBO SCENE
-            while True:
-                try:
-                    t = self.tf_buffer_.lookup_transform(
-                        "camera_color_optical_frame",
-                        link_name,
-                        rclpy.time.Time(),
-                    )
-                    t_matrix = self.transformStampedToMatrix(t.transform.rotation,t.transform.translation)
-                    open3d_mesh.transform(t_matrix)
-                    return open3d_mesh
-                except TransformException as ex:
-                    #TODO Change This
-                    pass
-
     def transformStampedToMatrix(self,rotation,translation):
         if(self.is_ready_):
             q0 = rotation.w
@@ -997,36 +798,6 @@ class WriteData(Node):
                 [0,0,0,1]]
             )
             return t_matrix
-
-    def setupMeshes(self,rgb,depth,segmentation):
-        if(self.is_ready_):
-            open3d_mesh = None        
-            for [filename,link_name,rpy_str,xyz_str] in self.links_info_:
-                if open3d_mesh is None:
-                    open3d_mesh = self.setupMesh(filename,link_name,rpy_str,xyz_str)
-                else:
-                    open3d_mesh += self.setupMesh(filename,link_name,rpy_str,xyz_str)
-            pcd = open3d_mesh.sample_points_uniformly(number_of_points=200000)
-            pcd.points = o3d.utility.Vector3dVector(np.asarray(pcd.points) / 1000)
-            pcd_data = np.asarray(pcd.points)
-            np.save('panda_gazebo_pointcloud.npy',pcd_data)
-            point_cloud_msg = PointCloud2()
-            point_cloud_msg.header = Header()
-            point_cloud_msg.header.frame_id = "real_camera_link"
-            fields =[PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
-            PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
-            PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
-            ]
-            point_cloud_msg.height = 1
-            point_cloud_msg.width = len(pcd_data)
-            point_cloud_msg.fields = fields
-            point_cloud_msg.is_bigendian = False
-            point_cloud_msg.point_step = 3 * 4
-            point_cloud_msg.row_step = point_cloud_msg.point_step * len(pcd_data)
-            point_cloud_msg.is_dense = True
-            point_cloud_msg.data = bytearray(pcd_data.astype('float32').tobytes())
-            self.full_publisher_.publish(point_cloud_msg)
-            self.fullPointcloudCallback(point_cloud_msg,rgb,depth,segmentation)
 
     def eulerToR(self,rpy_np):
         if(self.is_ready_):
@@ -1101,7 +872,7 @@ class WriteData(Node):
             ee_pose = self.ur5e_solver_.fk(np.array(joint_array))
             scipy_rotation = R.from_matrix(ee_pose[:3,:3])
             scipy_quaternion = scipy_rotation.as_quat()
-            qout = self.panda_panda_gripper_solver_.ik(ee_pose,qinit=self.q_init_)
+            qout = self.panda_solver_.ik(ee_pose,qinit=self.q_init_)
             self.q_init_ = qout
             # Hardcoded gripper
             qout_list = qout.tolist()
@@ -1115,72 +886,90 @@ class WriteData(Node):
             end_time = time.time()
 
     def listenerCallbackOnlineDebug(self,msg):
-        msg = msg.data_pieces[0]
-        start_time = time.time()
-        self.i_ += 1
-        online_input_folder = 'offline_ur5e_input'
-        if not os.path.exists(online_input_folder):
-            os.makedirs(online_input_folder)
-        online_input_num_folder = online_input_folder + '/offline_ur5e_' + str(int(self.i_ / 2)) 
-        if not os.path.exists(online_input_num_folder):
-            os.makedirs(online_input_num_folder)
-        
-        rgb_np = self.cv_bridge_.imgmsg_to_cv2(msg.rgb)
-        if(rgb_np.dtype == np.float32):
+        if(len(msg.data_pieces) == 2):
+            start_time = time.time()
+            self.i_ += 1
+            online_input_folder = 'offline_ur5e_input'
+            if not os.path.exists(online_input_folder):
+                os.makedirs(online_input_folder)
+            online_input_num_folder = online_input_folder + '/offline_ur5e_' + str(int(self.i_ / 2)) 
+            if not os.path.exists(online_input_num_folder):
+                os.makedirs(online_input_num_folder)
+            left_msg = msg.data_pieces[0]
+            right_msg = msg.data_pieces[1]
+        elif(len(msg.data_pieces) == 1):
+            left_msg = msg.data_pieces[0]
+        left_rgb_np = self.cv_bridge_.imgmsg_to_cv2(left_msg.rgb)
+        if(left_rgb_np.dtype == np.float32):
             self.float_image_ = True
-            rgb_np = (rgb_np * 255).astype(np.uint8)
+            left_rgb_np = (left_rgb_np * 255).astype(np.uint8)
+
+        left_rgb_np = self.cv_bridge_.imgmsg_to_cv2(left_msg.rgb)
         # rgb_np = np.array(msg.rgb,dtype=np.uint8).reshape((msg.segmentation.width,msg.segmentation.height,3))
-        if not os.path.exists('original_rgb'):
-            os.makedirs('original_rgb')
-        cv2.imwrite('original_rgb/rgb' + str(self.i_) +'.png',rgb_np)
-        depth_np = np.array(msg.depth_map,dtype=np.float64).reshape((msg.rgb.height,msg.rgb.width))
-        np.save(online_input_num_folder+'/depth.npy',depth_np)
-        cv2.imwrite('inf_mask.png',np.isinf(depth_np).astype(np.uint8)*255)
-        cv2.imwrite('nan_mask.png',np.isnan(depth_np).astype(np.uint8)*255)
-        depth_np[np.isinf(depth_np) & (depth_np < 0)] = 0.01
-        depth_np[np.isinf(depth_np) & (depth_np > 0)] = 10
-        depth_np[np.isnan(depth_np)] = 0
-        cv2.imwrite('og_depth.png',self.normalize_depth_image(depth_np))
-        panda_ur5_gripper_joints = np.array(msg.joints)
-        panda_ur5_gripper_joints = panda_ur5_gripper_joints[:-1]
-        ee_pose = self.panda_ur5_gripper_solver_.fk(panda_ur5_gripper_joints)
+        left_depth_np = np.array(left_msg.depth_map,dtype=np.float64).reshape((left_msg.rgb.height,left_msg.rgb.width))
+        left_depth_np[np.isinf(left_depth_np) & (left_depth_np < 0)] = 0.01
+        left_depth_np[np.isinf(left_depth_np) & (left_depth_np > 0)] = 10
+        left_depth_np[np.isnan(left_depth_np)] = 0
+        if(left_rgb_np.dtype == np.float32):
+            self.float_image_ = True
+            left_rgb_np = (left_rgb_np * 255).astype(np.uint8)
+
+        right_rgb_np = self.cv_bridge_.imgmsg_to_cv2(right_msg.rgb)
+        # rgb_np = np.array(msg.rgb,dtype=np.uint8).reshape((msg.segmentation.width,msg.segmentation.height,3))
+        right_depth_np = np.array(right_msg.depth_map,dtype=np.float64).reshape((right_msg.rgb.height,right_msg.rgb.width))
+        right_depth_np[np.isinf(right_depth_np) & (right_depth_np < 0)] = 0.01
+        right_depth_np[np.isinf(right_depth_np) & (right_depth_np > 0)] = 10
+        right_depth_np[np.isnan(right_depth_np)] = 0
+        if(right_rgb_np.dtype == np.float32):
+            self.float_image_ = True
+            right_rgb_np = (right_rgb_np * 255).astype(np.uint8)
+        ur5_joints = np.array(left_msg.joints)
+        real_ee_gripper_joint = ur5_joints[-1]
+        ur5_joints = ur5_joints[:-1]
+        ur5_joints[0] += math.pi
+        ee_pose = self.ur5_solver_.fk(ur5_joints)
         end_effector_rotation_with_no_translation = np.array([[0,-1,0,0],[1,0,0,0],[0,0,1,0],[0,0,0,1]])
         ee_pose = ee_pose @ end_effector_rotation_with_no_translation
         scipy_rotation = R.from_matrix(ee_pose[:3,:3])
         scipy_quaternion = scipy_rotation.as_quat()
-        qout = self.panda_panda_gripper_solver_.ik(ee_pose,qinit=self.q_init_)
+        qout = self.panda_solver_.ik(ee_pose,qinit=self.q_init_)
         b_xyz = 1e-5
         b_rpy = 1e-3
         while(qout is None):
             b_xyz *= 10
             b_rpy *= 10
-            qout = self.panda_panda_gripper_solver_.ik(ee_pose,qinit=self.q_init_,bx=b_xyz,by=b_xyz,bz=b_xyz,brx=b_rpy,bry=b_rpy,brz=b_rpy)
+            qout = self.ur5_solver_.ik(ee_pose,qinit=self.q_init_,bx=b_xyz,by=b_xyz,bz=b_xyz,brx=b_rpy,bry=b_rpy,brz=b_rpy)
             if(b_xyz == 0.01):
                 print("Couldn't find good IK")
                 qout = self.q_init_
         print("Bound xyz: " + str(b_xyz))
         self.q_init_ = qout
-        # self.q_init_ = np.array([-0.53852111,  0.08224237,  0.53535473, -2.26215458, -0.0946562 ,2.28648186, -0.10421298])
-        panda_ur5_arm_joints = panda_ur5_gripper_joints.tolist()
-        panda_ur5_gripper_joint = 0.0
-        panda_ur5_gripper_joints = [panda_ur5_gripper_joint] * 6
+        ur5_arm_joints = ur5_joints.tolist()
+        ur5_gripper_joint = 0.8 * real_ee_gripper_joint
+        ur5_gripper_joints = [ur5_gripper_joint] * 6
         panda_arm_joints = qout.tolist()
-        panda_gripper_joint = 0.04
+        panda_gripper_joint = -0.04 * real_ee_gripper_joint + 0.04
         panda_gripper_joints = [panda_gripper_joint] * 2
         full_joint_list = []
         
+        full_joint_list.extend(ur5_arm_joints)
+        full_joint_list.extend(ur5_gripper_joints)
         full_joint_list.extend(panda_arm_joints)
-        full_joint_list.extend(panda_ur5_arm_joints)
+        full_joint_list.extend(panda_gripper_joints)
+
         qout_msg = Float64MultiArray()
         qout_msg.data = full_joint_list
         self.ur5_and_panda_joint_command_publisher_.publish(qout_msg)
-        self.real_rgb_ = msg.rgb
-        self.real_depth_ = depth_np
+        self.left_real_rgb_ = left_msg.rgb
+        self.right_real_rgb_ = right_msg.rgb
+
+        self.left_real_depth_ = left_depth_np
+        self.right_real_depth_ = right_depth_np
         self.real_qout_list_ = full_joint_list
         end_time = time.time()
         print("Algo time Part 1: " + str(end_time - start_time) + " seconds")
         # else:
-        #     qout = self.panda_panda_gripper_solver_.ik(ee_pose,qinit=self.q_init_,bx=1e-3,by=1e-3,bz=1e-3)
+        #     qout = self.panda_solver_.ik(ee_pose,qinit=self.q_init_,bx=1e-3,by=1e-3,bz=1e-3)
         #     print("WARNING HIT IK ON FRANKA ERROR")
         
 
@@ -1207,7 +996,7 @@ class WriteData(Node):
             joint_array = joint_array[:-1]
 
             ee_pose = self.ur5e_solver_.fk(np.array(joint_array))
-            qout = self.panda_panda_gripper_solver_.ik(ee_pose,qinit=self.q_init_)
+            qout = self.panda_solver_.ik(ee_pose,qinit=self.q_init_)
             self.q_init_ = qout
 
             # Hardcoded gripper
@@ -1221,25 +1010,6 @@ class WriteData(Node):
             self.setupMeshes(rgb, depth_map, segmentation_data)
             # end_time = time.time()
             # print("Total time: " + str(end_time - start_time) + " s")
-
-
-    def joint_commands_callback(self, msg):
-        self.joint_state_msg.header.stamp = self.get_clock().now().to_msg()
-        #self.joint_state_msg.name = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint","wrist_1_joint", "wrist_2_joint", "wrist_3_joint","robotiq_85_left_knuckle_joint","robotiq_85_right_knuckle_joint","robotiq_85_left_inner_knuckle_joint","robotiq_85_right_inner_knuckle_joint","robotiq_85_left_finger_tip_joint","robotiq_85_right_finger_tip_joint"]  # Replace with your joint names
-        self.joint_state_msg.name = ["panda_joint1", "panda_joint2", "panda_joint3","panda_joint4", "panda_joint5", "panda_joint6","panda_joint7","panda_finger_joint1","panda_finger_joint2"]
-        msg.data.append(msg.data[-1])
-        #msg.data.append(gripper_val)
-        #msg.data.append(gripper_val)
-        # for i in range(5):
-        #     if(i == 1 or i == 4):
-        #         msg.data.append(gripper_val)
-        #     else:
-        #         msg.data.append(gripper_val)
-        self.joint_state_msg.position = msg.data
-        self.thetas_ = {key:value for key,value in zip(self.joint_state_msg.name,msg.data)}
-        self.fks_ = self.chain_.forward_kinematics(self.thetas_)
-        self.panda_joint_state_publisher_.publish(self.joint_state_msg)
-
 
 
     
