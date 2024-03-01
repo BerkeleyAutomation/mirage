@@ -5,7 +5,7 @@ import pickle
 import imageio
 # Load the data
 # data = np.load("/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/inpaint_ur5_offline_data.npy", allow_pickle=True)[0]
-data = np.load("/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/inpaint_data_for_analysis.npy", allow_pickle=True)
+data = np.load("/home/lawrence/xembody/xembody/xembody_robosuite/image_inpainting/inpaint_data_for_analysis_temp.npy", allow_pickle=True)
 # data = np.load("/home/lawrence/xembody/xembody/xembody_robosuite/policy_analysis/one_trajectory_source_target_with_inpainted.npy", allow_pickle=True)
 # data = data.tolist()
 # breakpoint()

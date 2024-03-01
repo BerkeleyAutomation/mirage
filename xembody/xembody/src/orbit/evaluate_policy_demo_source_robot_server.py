@@ -23,7 +23,7 @@ from omni.isaac.kit import SimulationApp
 
 from rsl_rl.runners import OnPolicyRunner
 
-import omni.isaac.contrib_envs  # noqa: F401
+# import omni.isaac.contrib_envs  # noqa: F401
 import omni.isaac.orbit_envs  # noqa: F401
 from omni.isaac.orbit_envs.utils import get_checkpoint_path, parse_env_cfg
 from omni.isaac.orbit_envs.utils.wrappers.rsl_rl import RslRlVecEnvWrapper

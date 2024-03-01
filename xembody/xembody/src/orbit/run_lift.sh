@@ -1,0 +1,3 @@
+python evaluate_policy_demo_source_robot_server.py --agent /home/lawrence/xembody/Orbit/source/standalone/workflows/rsl_rl/logs/rsl_rl/lift/Nov25_17-09-30/model_200.pt --n_rollouts 100 --horizon 400 --seeds 0 --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_high_dim_1_source.mp4 --connection --passive &
+
+python evaluate_policy_demo_target_robot_client.py --agent /home/lawrence/xembody/Orbit/source/standalone/workflows/rsl_rl/logs/rsl_rl/lift/Nov25_17-09-30/model_200.pt --n_rollouts 100 --horizon 400 --seed 0 --video_path /home/lawrence/xembody/robosuite/collected_data/output_lift_high_dim_1_target.mp4 --tracking_error_threshold 0.015 --num_iter_max 300 --robot_name ur5 --connection

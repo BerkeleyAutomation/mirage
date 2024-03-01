@@ -44,6 +44,9 @@ ament_target_dependencies(no_physics_plugin
   "gazebo_ros"
   "rclcpp"
   "std_msgs"
+  "sensor_msgs"
+  "message_filters"
+  "cv_bridge"
 )
 target_link_libraries(no_physics_plugin ${GAZEBO_LIBRARIES})
 
@@ -53,8 +56,35 @@ ament_target_dependencies(ur5e_control_plugin
   "gazebo_ros"
   "rclcpp"
   "std_msgs"
+  "sensor_msgs"
+  "message_filters"
+  "cv_bridge"
 )
 target_link_libraries(ur5e_control_plugin ${GAZEBO_LIBRARIES})
+
+add_library(ur5_and_panda_gripper_early_inpaint_control_plugin SHARED ur5_and_panda_gripper_early_inpaint_control_plugin/ur5_and_panda_gripper_early_inpaint_control_plugin.cc)
+ament_target_dependencies(ur5_and_panda_gripper_early_inpaint_control_plugin
+  "gazebo_dev"
+  "gazebo_ros"
+  "rclcpp"
+  "std_msgs"
+  "sensor_msgs"
+  "message_filters"
+  "cv_bridge"
+)
+target_link_libraries(ur5_and_panda_gripper_early_inpaint_control_plugin ${GAZEBO_LIBRARIES})
+
+add_library(ur5_and_panda_no_gripper_early_inpaint_control_plugin SHARED ur5_and_panda_no_gripper_early_inpaint_control_plugin/ur5_and_panda_no_gripper_early_inpaint_control_plugin.cc)
+ament_target_dependencies(ur5_and_panda_no_gripper_early_inpaint_control_plugin
+  "gazebo_dev"
+  "gazebo_ros"
+  "rclcpp"
+  "std_msgs"
+  "sensor_msgs"
+  "message_filters"
+  "cv_bridge"
+)
+target_link_libraries(ur5_and_panda_no_gripper_early_inpaint_control_plugin ${GAZEBO_LIBRARIES})
 
 add_library(panda_control_plugin SHARED panda_control_plugin/panda_control_plugin.cc)
 ament_target_dependencies(panda_control_plugin
@@ -68,30 +98,6 @@ ament_target_dependencies(panda_control_plugin
 )
 target_link_libraries(panda_control_plugin ${GAZEBO_LIBRARIES} ${OpenCV_LIBS})
 
-add_library(ur5_and_panda_no_gripper_control_plugin SHARED ur5_and_panda_no_gripper_control_plugin/ur5_and_panda_no_gripper_control_plugin.cc)
-ament_target_dependencies(ur5_and_panda_no_gripper_control_plugin
-  "gazebo_dev"
-  "gazebo_ros"
-  "rclcpp"
-  "std_msgs"
-  "sensor_msgs"
-  "message_filters"
-  "cv_bridge"
-)
-target_link_libraries(ur5_and_panda_no_gripper_control_plugin ${GAZEBO_LIBRARIES} ${OpenCV_LIBS})
-
-add_library(ur5_and_panda_gripper_control_plugin SHARED ur5_and_panda_gripper_control_plugin/ur5_and_panda_gripper_control_plugin.cc)
-ament_target_dependencies(ur5_and_panda_gripper_control_plugin
-  "gazebo_dev"
-  "gazebo_ros"
-  "rclcpp"
-  "std_msgs"
-  "sensor_msgs"
-  "message_filters"
-  "cv_bridge"
-)
-target_link_libraries(ur5_and_panda_gripper_control_plugin ${GAZEBO_LIBRARIES} ${OpenCV_LIBS})
-
 add_library(panda_control_ur5e_gripper_real_plugin SHARED panda_control_ur5e_gripper_real_plugin/panda_control_ur5e_gripper_real_plugin.cc)
 ament_target_dependencies(panda_control_ur5e_gripper_real_plugin
   "gazebo_dev"
@@ -104,8 +110,8 @@ ament_target_dependencies(panda_control_ur5e_gripper_real_plugin
 )
 target_link_libraries(panda_control_ur5e_gripper_real_plugin ${GAZEBO_LIBRARIES} ${OpenCV_LIBS})
 
-add_library(panda_and_panda_grippers_control_plugin SHARED panda_and_panda_grippers_control_plugin/panda_and_panda_grippers_control_plugin.cc)
-ament_target_dependencies(panda_and_panda_grippers_control_plugin
+add_library(panda_and_panda_grippers_to_ur5_gripper_early_inpaint_control_plugin SHARED panda_and_panda_grippers_to_ur5_gripper_early_inpaint_control_plugin/panda_and_panda_grippers_to_ur5_gripper_early_inpaint_control_plugin.cc)
+ament_target_dependencies(panda_and_panda_grippers_to_ur5_gripper_early_inpaint_control_plugin
   "gazebo_dev"
   "gazebo_ros"
   "rclcpp"
@@ -114,28 +120,7 @@ ament_target_dependencies(panda_and_panda_grippers_control_plugin
   "message_filters"
   "cv_bridge"
 )
-target_link_libraries(panda_and_panda_grippers_control_plugin ${GAZEBO_LIBRARIES} ${OpenCV_LIBS})
-
-add_library(panda_and_panda_grippers_early_inpaint_control_plugin SHARED panda_and_panda_grippers_early_inpaint_control_plugin/panda_and_panda_grippers_early_inpaint_control_plugin.cc)
-ament_target_dependencies(panda_and_panda_grippers_early_inpaint_control_plugin
-  "gazebo_dev"
-  "gazebo_ros"
-  "rclcpp"
-  "std_msgs"
-  "sensor_msgs"
-  "message_filters"
-  "cv_bridge"
-)
-target_link_libraries(panda_and_panda_grippers_early_inpaint_control_plugin ${GAZEBO_LIBRARIES} ${OpenCV_LIBS})
-
-add_library(gripper_control_plugin SHARED gripper_control_plugin/gripper_control_plugin.cc)
-ament_target_dependencies(gripper_control_plugin
-  "gazebo_dev"
-  "gazebo_ros"
-  "rclcpp"
-  "std_msgs"
-)
-target_link_libraries(gripper_control_plugin ${GAZEBO_LIBRARIES})
+target_link_libraries(panda_and_panda_grippers_to_ur5_gripper_early_inpaint_control_plugin ${GAZEBO_LIBRARIES} ${OpenCV_LIBS})
 
 
 # Include Cpp "include" directory
@@ -143,32 +128,10 @@ include_directories(include
 ${gazebo_dev_INCLUDE_DIRS}
 ${gazebo_ros_INCLUDE_DIRS})
 
-## COMPILE
-add_library(
-  gazebo_env
-  SHARED
-  hardware/urbot.cpp
-  #hardware/rrbot.cpp
-)
 
-target_compile_features(gazebo_env PUBLIC cxx_std_17)
-target_include_directories(gazebo_env PUBLIC
-$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/hardware/include>
-$<INSTALL_INTERFACE:include/gazebo_env>
-)
-ament_target_dependencies(
-  gazebo_env PUBLIC
-  ${THIS_PACKAGE_INCLUDE_DEPENDS}
-)
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE "GAZEBO_ENV_BUILDING_DLL")
 pluginlib_export_plugin_description_file(hardware_interface ros2_control_demo_ur5e.xml)
 
 # INSTALL
-install(
-  DIRECTORY hardware/include/
-  DESTINATION include/gazebo_env
-)
 install(
   DIRECTORY meshes
   DESTINATION share/gazebo_env
@@ -187,48 +150,14 @@ install(
   DIRECTORY ur5e_description
   DESTINATION share/gazebo_env
 )
-install(
-  DIRECTORY bringup/launch bringup/config
-  DESTINATION share/gazebo_env
-)
-install(TARGETS gazebo_env
-  EXPORT export_gazebo_env
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
+
 install(PROGRAMS
-  scripts/ee_pose.py
+  scripts/write_data_node_panda_gripper_to_panda_ur5_gripper_multi_real_better_early_inpaint_reproject.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(PROGRAMS
-  scripts/panda_point_cloud_publisher.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/read_data_node.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/write_data_node.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/read_data_node_real_ur5_check.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/write_data_node_ur5_to_panda_no_gripper_real_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/write_data_node_panda_ur5_gripper_to_panda_gripper_real_better.py
+  scripts/write_data_node_ur5_to_panda_no_gripper_multi_real_better_reproject.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -237,20 +166,23 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-
-
 install(PROGRAMS
-  scripts/read_data_node_real_multi_ur5_check.py
+  scripts/write_data_node_ur5_to_panda_no_gripper_multi_real_better_early_inpaint.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(PROGRAMS
-  scripts/write_data_node_panda_gripper_to_panda_ur5_gripper_real_better.py
+  scripts/write_data_node_ur5_to_panda_gripper_multi_real_better_early_inpaint.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(PROGRAMS
-  scripts/panda_no_gripper_joint_command_publisher.py
+  scripts/write_data_node_panda_ur5_gripper_to_panda_gripper_multi_real_better_early_inpaint.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(PROGRAMS
+  scripts/write_data_node_panda_gripper_to_panda_ur5_gripper_multi_real_better_early_inpaint.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -260,42 +192,7 @@ install(PROGRAMS
 )
 
 install(PROGRAMS
-  scripts/write_data_node_panda_gripper_to_panda_ur5_gripper_multi_real_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/write_data_node_panda_ur5_gripper_to_panda_gripper_multi_real_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/write_data_node_ur5_to_panda_gripper_multi_real_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/write_data_node_ur5_to_panda_gripper_multi_real_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/write_data_node_ur5_to_panda_gripper_real_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/read_data_node_robosuite.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
   scripts/reproject_test_node.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/read_data_node_real_franka_check2.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -309,78 +206,8 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-
-install(PROGRAMS
-  scripts/read_data_node_robosuite_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/read_data_node_robosuite_diffusion_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/read_data_node_robosuite_franka_to_franka.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/read_data_node_robosuite_franka_to_franka_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/write_data_node_robosuite.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
 install(PROGRAMS
   scripts/write_data_node_robosuite_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/write_data_node_panda_to_ur5_no_gripper_real_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/write_data_node_robosuite_diffusion_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/write_data_node_robosuite_franka_to_franka.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/write_data_node_robosuite_franka_to_franka_better.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/ur5e_point_cloud_publisher.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/panda_joint_command_publisher.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/panda_ur5_gripper_real_joint_command_publisher.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
-  scripts/ur5e_joint_command_publisher.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-install(PROGRAMS
-  scripts/full_ur5e_joint_state_publisher_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -390,23 +217,10 @@ install(PROGRAMS
 )
 
 install(PROGRAMS
-  scripts/real_offline_check_node.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(PROGRAMS
   scripts/panda_and_panda_grippers_joint_state_publisher_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(PROGRAMS
-  scripts/gripper_joint_state_publisher_node.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-install(PROGRAMS
-  scripts/gazebo_image_test.py
-  DESTINATION lib/${PROJECT_NAME}
-)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -426,6 +240,5 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_export_targets(export_gazebo_env HAS_LIBRARY_TARGET)
 ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
 ament_package()

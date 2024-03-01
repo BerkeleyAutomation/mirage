@@ -24,14 +24,6 @@
       <child link="ur5_right_camera_link" />
     </joint>
     <link name="ur5_right_camera_link">
-      <visual>
-        <!-- the mesh origin is at front plate in between the two infrared camera axes -->
-        <origin rpy="1.5707963267948966 0 1.5707963267948966" xyz="0.0043 -0.0175 0" />
-        <geometry>
-          <mesh
-            filename="file://$(find gazebo_env)/meshes/d435/d435.dae" />
-        </geometry>
-      </visual>
       <collision>
         <origin rpy="0 0 0" xyz="0 -0.0175 0" />
         <geometry>

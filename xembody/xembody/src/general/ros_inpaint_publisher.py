@@ -108,7 +108,7 @@ class ROSInpaintPublisher(XEmbodyPublisher):
 
     def _inpaint_single(self, inpaint_msg):
         self.node.get_logger().info('Received inpainted images')
-        print("Received inpainted images")
+        print(f"Received {len(inpaint_msg.images)} inpainted images")
         with self._internal_lock:
             images = []
             for image in inpaint_msg.images:

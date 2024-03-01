@@ -37,9 +37,6 @@ def generate_launch_description():
         )
     )
 
-    # Initialize Arguments
-    gui = LaunchConfiguration("gui")
-
     gazebo_server = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -96,34 +93,10 @@ def generate_launch_description():
         output="screen",
     )
 
-    joint_state_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "joint_state_broadcaster",
-            "--controller-manager",
-            "/controller_manager",
-        ],
-    )
-
     joint_state_publisher_node = Node(
         package="gazebo_env",
         executable="full_panda_joint_state_publisher_node.py",
         output="screen",
-    )
-
-    image_sub_node = Node(
-        package="gazebo_env", executable="gazebo_image_test.py", output="screen"
-    )
-
-    robot_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "forward_position_controller",
-            "--controller-manager",
-            "/controller_manager",
-        ],
     )
 
     nodes = [
