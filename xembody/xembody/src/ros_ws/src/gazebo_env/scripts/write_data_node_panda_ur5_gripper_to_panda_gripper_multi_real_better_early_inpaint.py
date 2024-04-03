@@ -3,7 +3,6 @@
 import rclpy
 from rclpy.node import Node
 import trimesh
-import open3d as o3d
 from std_msgs.msg import Header, Float64MultiArray,Bool
 from sensor_msgs.msg import PointCloud2, PointField, CameraInfo, Image
 import numpy as np
@@ -28,7 +27,6 @@ from sensor_msgs.msg import JointState
 from tracikpy import TracIKSolver
 from mdh.kinematic_chain import KinematicChain
 from mdh import UnReachable
-import kinpy as kp
 from geometry_msgs.msg import Vector3, Quaternion
 from scipy.spatial.transform import Rotation as R
 from message_filters import ApproximateTimeSynchronizer, Subscriber
@@ -46,7 +44,7 @@ class WriteData(Node):
         self.panda_panda_gripper_urdf_ = os.path.join(file_directory,'../../../../src/gazebo_env/description/urdf/panda_gripper_ik_real.urdf')        
         self.panda_panda_gripper_solver_ = TracIKSolver(self.panda_panda_gripper_urdf_,"panda_link0","panda_ee")
         self.panda_ur5_gripper_urdf_ = os.path.join(file_directory,'../../../../src/gazebo_env/description/urdf/panda_ur5_gripper_ik_real.urdf')
-        self.chain_ = kp.build_chain_from_urdf(open(self.panda_panda_gripper_urdf_).read())
+        # self.chain_ = kp.build_chain_from_urdf(open(self.panda_panda_gripper_urdf_).read())
         self.panda_ur5_gripper_solver_ = TracIKSolver(self.panda_ur5_gripper_urdf_,"panda_with_ur5_gripper_link0","ur5_ee_gripper")
 
         # real_camera_link to world and then multiply translation by 1000
@@ -1334,7 +1332,7 @@ class WriteData(Node):
         #         msg.data.append(gripper_val)
         self.joint_state_msg.position = msg.data
         self.thetas_ = {key:value for key,value in zip(self.joint_state_msg.name,msg.data)}
-        self.fks_ = self.chain_.forward_kinematics(self.thetas_)
+        # self.fks_ = self.chain_.forward_kinematics(self.thetas_)
         self.panda_joint_state_publisher_.publish(self.joint_state_msg)
 
 

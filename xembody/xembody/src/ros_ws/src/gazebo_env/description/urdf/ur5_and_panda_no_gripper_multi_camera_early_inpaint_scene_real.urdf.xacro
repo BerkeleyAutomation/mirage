@@ -31,14 +31,14 @@
   <xacro:include filename="$(find gazebo_env)/urdf/panda_arm_no_gripper.xacro"/>
   <xacro:panda_arm_no_gripper connected_to="world" xyz="10 20 10"/>
 
-  <xacro:real_panda_cam_no_gripper_left parent="world">
+  <xacro:sensor_d435_panda_no_gripper_left parent="world">
     <origin xyz="10.68760298 20.39006238 10.46098218" rpy="0.06390863  0.58797942 -2.01314893" />
-  </xacro:real_panda_cam_no_gripper_left>
+  </xacro:sensor_d435_panda_no_gripper_left>
 
   <xacro:include filename="$(find gazebo_env)/urdf/real_panda_cam_no_gripper_right.urdf.xacro" />
-  <xacro:real_panda_cam_no_gripper_right parent="world">
+  <xacro:sensor_d435_panda_no_gripper_right parent="world">
     <origin xyz="10.68760298 25.39006238 10.46098218" rpy="0.06390863  0.58797942 -2.01314893" />
-  </xacro:real_panda_cam_no_gripper_right>
+  </xacro:sensor_d435_panda_no_gripper_right>
   <gazebo>
     <plugin name="ur5_and_panda_no_gripper_early_inpaint_control" filename="libur5_and_panda_no_gripper_early_inpaint_control_plugin.so" />
   </gazebo>

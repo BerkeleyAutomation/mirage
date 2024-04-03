@@ -138,6 +138,11 @@ install(
 )
 
 install(
+  DIRECTORY bringup/launch
+  DESTINATION share/gazebo_env
+)
+
+install(
   DIRECTORY worlds
   DESTINATION share/gazebo_env
 )
