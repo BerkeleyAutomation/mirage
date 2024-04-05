@@ -84,23 +84,6 @@ class WriteData(Node):
         #Harcoding start position
         self.q_init_ = np.array([-0.56332457,  0.06948572,  0.5227356,  -2.26363611, -0.11123186,  2.28321218, -0.09410787])
         
-        self.urdf_xacro_path_ = os.path.join(FindPackageShare(package="gazebo_env").find("gazebo_env"),"urdf","panda_arm_hand_only.urdf.xacro")
-        xacro_command = "ros2 run xacro xacro " + self.urdf_xacro_path_
-        xacro_subprocess = subprocess.Popen(
-            xacro_command,
-            shell=True,
-            stdout=subprocess.PIPE,
-        )
-        urdf_string = ""
-        while True:
-            line = xacro_subprocess.stdout.readline()
-            if line:
-                line_byte = line.strip()
-                line = line_byte.decode("utf-8")
-                urdf_string += line
-            else:
-                break
-        root = ET.fromstring(urdf_string)
         self.publishers_ = []
         self.subscribers_ = []
         self.timers_ = []

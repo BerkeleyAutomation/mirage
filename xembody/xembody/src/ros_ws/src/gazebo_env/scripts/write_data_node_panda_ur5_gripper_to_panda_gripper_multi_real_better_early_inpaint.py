@@ -87,23 +87,6 @@ class WriteData(Node):
         #Harcoding start position
         self.q_init_ = np.array([-0.56332457,  0.06948572,  0.5227356,  -2.26363611, -0.11123186,  2.28321218, -0.09410787])
         
-        self.urdf_xacro_path_ = os.path.join(FindPackageShare(package="gazebo_env").find("gazebo_env"),"urdf","panda_arm_hand_only.urdf.xacro")
-        xacro_command = "ros2 run xacro xacro " + self.urdf_xacro_path_
-        xacro_subprocess = subprocess.Popen(
-            xacro_command,
-            shell=True,
-            stdout=subprocess.PIPE,
-        )
-        urdf_string = ""
-        while True:
-            line = xacro_subprocess.stdout.readline()
-            if line:
-                line_byte = line.strip()
-                line = line_byte.decode("utf-8")
-                urdf_string += line
-            else:
-                break
-        root = ET.fromstring(urdf_string)
         self.publishers_ = []
         self.subscribers_ = []
         self.timers_ = []
@@ -243,33 +226,6 @@ class WriteData(Node):
         timer_period = 0.5
         self.links_info_ = []
         self.original_meshes_ = []
-        for link in root.iter('link'):
-            element_name1 = "visual"
-            found_element1 = link.find(".//" + element_name1)
-            element_name2 = "geometry"
-            found_element2 = link.find(".//" + element_name2)
-            element_name3 = "mesh"
-            found_element3 = link.find(".//" + element_name3)
-            if (found_element1 is not None) and (found_element2 is not None) and (found_element3 is not None):
-                link_name = link.attrib.get('name')
-                for visual in link.iter("visual"):
-                    origin_element = visual.find(".//origin")
-                    rpy_str = origin_element.attrib.get('rpy')
-                    xyz_str = origin_element.attrib.get('xyz')
-                    for geometry in visual.iter("geometry"):
-                        for mesh in geometry.iter("mesh"):
-                            filename = mesh.attrib.get('filename')[7:]
-                            #publisher = self.create_publisher(PointCloud2,link_name+"_pointcloud",10)
-                            #publisher_camera = self.create_publisher(PointCloud2,link_name+"_pointcloud_camera",10)
-                            #self.publishers_.append(publisher)
-                            #self.publishers_.append(publisher_camera)
-                            #subscriber = Subscriber(self,PointCloud2,link_name+"_pointcloud")
-                            #self.subscribers_.append(subscriber)
-                            mesh = self.prelimMeshFast(filename,link_name,rpy_str,xyz_str)
-                            self.original_meshes_.append(mesh)
-                            self.links_info_.append([filename,link_name,rpy_str,xyz_str])
-                            #timer = self.create_timer(timer_period,partial(self.debugTimerCallback,filename,link_name,publisher,publisher_camera,rpy_str,xyz_str))
-                            #self.timers_.append(timer)
         self.full_publisher_ = self.create_publisher(PointCloud2,"full_pointcloud",1)
         self.inpainted_publisher_ = self.create_publisher(MultipleInpaintImages,"inpainted_image",1)
         #self.full_subscriber_ = self.create_subscription(PointCloud2,'full_pointcloud',self.fullPointcloudCallback,10)

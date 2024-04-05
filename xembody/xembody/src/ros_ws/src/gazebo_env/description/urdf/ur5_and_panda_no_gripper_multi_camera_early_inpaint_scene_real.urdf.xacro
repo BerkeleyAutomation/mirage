@@ -28,6 +28,9 @@
     <origin xyz="10.5538436 0.47336682 10.50176154" rpy="0.05888073  0.52934421 -1.97405572" />
   </xacro:sensor_d435_panda_right>
 
+  <xacro:include filename="$(find gazebo_env)/urdf/real_panda_cam_no_gripper_left.urdf.xacro" />
+  <xacro:include filename="$(find gazebo_env)/urdf/real_panda_cam_no_gripper_right.urdf.xacro" />
+
   <xacro:include filename="$(find gazebo_env)/urdf/panda_arm_no_gripper.xacro"/>
   <xacro:panda_arm_no_gripper connected_to="world" xyz="10 20 10"/>
 

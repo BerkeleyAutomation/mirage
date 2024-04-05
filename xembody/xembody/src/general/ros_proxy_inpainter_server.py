@@ -11,7 +11,7 @@ class ROSProxyInpaintServer:
     Proxy process that sends to another process which performs the ROS communication
     """
 
-    def __init__(self, ip: str = "169.254.91.160", port: int = 31035) -> None:
+    def __init__(self, ip: str = "169.254.202.68", port: int = 31035) -> None:
         """
         Initializes the publisher code.
         """
