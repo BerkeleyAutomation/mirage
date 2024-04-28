@@ -122,6 +122,17 @@ ament_target_dependencies(panda_and_panda_grippers_to_ur5_gripper_early_inpaint_
 )
 target_link_libraries(panda_and_panda_grippers_to_ur5_gripper_early_inpaint_control_plugin ${GAZEBO_LIBRARIES} ${OpenCV_LIBS})
 
+add_library(panda_and_panda_grippers_to_ur5_gripper_wrist_early_inpaint_control_plugin SHARED panda_and_panda_grippers_to_ur5_gripper_wrist_early_inpaint_control_plugin/panda_and_panda_grippers_to_ur5_gripper_wrist_early_inpaint_control_plugin.cc)
+ament_target_dependencies(panda_and_panda_grippers_to_ur5_gripper_wrist_early_inpaint_control_plugin
+  "gazebo_dev"
+  "gazebo_ros"
+  "rclcpp"
+  "std_msgs"
+  "sensor_msgs"
+  "message_filters"
+  "cv_bridge"
+)
+target_link_libraries(panda_and_panda_grippers_to_ur5_gripper_wrist_early_inpaint_control_plugin ${GAZEBO_LIBRARIES} ${OpenCV_LIBS})
 
 # Include Cpp "include" directory
 include_directories(include
@@ -162,7 +173,33 @@ install(PROGRAMS
 )
 
 install(PROGRAMS
+  scripts/write_data_node_panda_gripper_to_panda_ur5_gripper_multi_real_better_early_inpaint_reproject.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(PROGRAMS
+  scripts/write_data_node_panda_gripper_to_panda_ur5_gripper_multi_real_better_wrist_early_inpaint.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(PROGRAMS
+  scripts/read_data_node_input_files_real_data_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(PROGRAMS
+  scripts/write_data_node_panda_ur5_gripper_to_panda_gripper_multi_real_better_wrist_early_inpaint.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+
+install(PROGRAMS
   scripts/write_data_node_ur5_to_panda_no_gripper_multi_real_better_reproject.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(PROGRAMS
+  scripts/dummy_joint_command_publisher.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

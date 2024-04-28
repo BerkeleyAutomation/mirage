@@ -62,3 +62,4 @@ xembody/xembody/src/ros_ws/log
 xembody/xembody/src/ros_ws/data
 xembody/xembody/src/ros_ws/log
 xembody/xembody/src/ros_ws/src/gazebo_env/trajectory_im256/trajectory_im256.h5
+*.h5

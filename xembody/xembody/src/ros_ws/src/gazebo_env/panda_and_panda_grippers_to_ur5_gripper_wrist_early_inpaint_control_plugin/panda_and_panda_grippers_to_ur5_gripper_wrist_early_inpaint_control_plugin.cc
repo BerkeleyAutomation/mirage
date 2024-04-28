@@ -66,13 +66,13 @@ namespace gazebo
         
         physics::WorldPtr world = physics::get_world("default");
         auto model_ptr = world->ModelByName(model_name_);
-        auto panda_with_ur5_gripper_joint1 = model_ptr->GetJoint("panda_with_ur5_gripper_joint1");
-        auto panda_with_ur5_gripper_joint2 = model_ptr->GetJoint("panda_with_ur5_gripper_joint2");
-        auto panda_with_ur5_gripper_joint3 = model_ptr->GetJoint("panda_with_ur5_gripper_joint3");
-        auto panda_with_ur5_gripper_joint4 = model_ptr->GetJoint("panda_with_ur5_gripper_joint4");
-        auto panda_with_ur5_gripper_joint5 = model_ptr->GetJoint("panda_with_ur5_gripper_joint5");
-        auto panda_with_ur5_gripper_joint6 = model_ptr->GetJoint("panda_with_ur5_gripper_joint6");
-        auto panda_with_ur5_gripper_joint7 = model_ptr->GetJoint("panda_with_ur5_gripper_joint7");
+        auto panda_with_ur5_gripper_joint1 = model_ptr->GetJoint("panda_with_ur5_gripper_wrist_joint1");
+        auto panda_with_ur5_gripper_joint2 = model_ptr->GetJoint("panda_with_ur5_gripper_wrist_joint2");
+        auto panda_with_ur5_gripper_joint3 = model_ptr->GetJoint("panda_with_ur5_gripper_wrist_joint3");
+        auto panda_with_ur5_gripper_joint4 = model_ptr->GetJoint("panda_with_ur5_gripper_wrist_joint4");
+        auto panda_with_ur5_gripper_joint5 = model_ptr->GetJoint("panda_with_ur5_gripper_wrist_joint5");
+        auto panda_with_ur5_gripper_joint6 = model_ptr->GetJoint("panda_with_ur5_gripper_wrist_joint6");
+        auto panda_with_ur5_gripper_joint7 = model_ptr->GetJoint("panda_with_ur5_gripper_wrist_joint7");
 
         auto left_knuckle = model_ptr->GetJoint("robotiq_85_left_knuckle_joint");
         auto right_knuckle = model_ptr->GetJoint("robotiq_85_right_knuckle_joint");
@@ -115,7 +115,7 @@ namespace gazebo
         panda_no_gripper_joint5->SetPosition(0,msg->data[4]);
         panda_no_gripper_joint6->SetPosition(0,msg->data[5]);
         panda_no_gripper_joint7->SetPosition(0,msg->data[6]);
-        std::cout << "This far" << std::endl;
+        
         
         panda_with_ur5_gripper_joint1->SetPosition(0,msg->data[7]);
         panda_with_ur5_gripper_joint2->SetPosition(0,msg->data[8]);
@@ -124,6 +124,7 @@ namespace gazebo
         panda_with_ur5_gripper_joint5->SetPosition(0,msg->data[11]);
         panda_with_ur5_gripper_joint6->SetPosition(0,msg->data[12]);
         panda_with_ur5_gripper_joint7->SetPosition(0,msg->data[13]);
+        std::cout << "This far" << std::endl;
         
 
         left_knuckle->SetPosition(0,msg->data[16]);

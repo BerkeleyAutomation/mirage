@@ -22,55 +22,91 @@ import robomimic.utils.train_utils as TrainUtils
 
 model_config_mapping = {
     "tiger_in_bowl_left": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-12-tiger/ds_xembody-test_cams_20120598_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240112150236/models/model_epoch_140.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-12-tiger/ds_xembody-test_cams_20120598_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240112150236/models/model_epoch_140.pth",
         "config_path": "/home/zehan/tmp/autogen_configs/ril/diffusion_policy/r2d2/im/01-12-None/01-12-24-15-01-32/json/ds_xembody-test_cams_20120598_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False.json"
     },
     "tiger_in_bowl_stereo": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-12-tiger/ds_xembody-test_cams_20120598_stereo_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240112150432/models/model_epoch_140.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-12-tiger/ds_xembody-test_cams_20120598_stereo_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240112150432/models/model_epoch_140.pth",
         "config_path": "/home/zehan/tmp/autogen_configs/ril/diffusion_policy/r2d2/im/01-12-None/01-12-24-15-01-32/json/ds_xembody-test_cams_20120598_stereo_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False.json"
     },
     
     
     "drawer_left": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-18-drawer/ds_xembody-open-drawer_cams_20120598_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240118184224/models/model_epoch_400.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-18-drawer/ds_xembody-open-drawer_cams_20120598_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240118184224/models/model_epoch_400.pth",
     },
     "drawer_stereo": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-18-drawer/ds_xembody-open-drawer_cams_20120598_stereo_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240118103211/models/model_epoch_400.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-18-drawer/ds_xembody-open-drawer_cams_20120598_stereo_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240118103211/models/model_epoch_400.pth",
     },
     
     "toaster_left": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-20-toaster/ds_xembody-toaster_cams_20120598_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240120235632/models/model_epoch_400.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-20-toaster/ds_xembody-toaster_cams_20120598_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240120235632/models/model_epoch_400.pth",
     },
     "toaster_front": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-20-toaster/ds_xembody-toaster_cams_24400334_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240120235839/models/model_epoch_400.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-20-toaster/ds_xembody-toaster_cams_24400334_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240120235839/models/model_epoch_400.pth",
     },
     "toaster_left_front": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-20-toaster/ds_xembody-toaster_cams_20120598_left_24400334_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240121192329/models/model_epoch_400.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-20-toaster/ds_xembody-toaster_cams_20120598_left_24400334_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240121192329/models/model_epoch_400.pth",
     },
     
     
     "tiger_background_left": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-25-tiger-background/ds_xembody-tiger-background_cams_20120598_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240125013700/models/model_epoch_400.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-25-tiger-background/ds_xembody-tiger-background_cams_20120598_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240125013700/models/model_epoch_400.pth",
     },
     "tiger_background_front": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-25-tiger-background/ds_xembody-tiger-background_cams_24400334_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240125013745/models/model_epoch_400.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-25-tiger-background/ds_xembody-tiger-background_cams_24400334_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240125013745/models/model_epoch_400.pth",
     },
     "tiger_background_left_front": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-25-tiger-background/ds_xembody-tiger-background_cams_20120598_left_24400334_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240125013804/models/model_epoch_400.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-25-tiger-background/ds_xembody-tiger-background_cams_20120598_left_24400334_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240125013804/models/model_epoch_400.pth",
     },
     
     
     "cup_background_left": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-28-cup-background/ds_xembody-cup-background_cams_20120598_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240129014350/models/model_epoch_400.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-28-cup-background/ds_xembody-cup-background_cams_20120598_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240129014350/models/model_epoch_400.pth",
     },
     "cup_background_front": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-28-cup-background/ds_xembody-cup-background_cams_24400334_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240129014446/models/model_epoch_400.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-28-cup-background/ds_xembody-cup-background_cams_24400334_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240129014446/models/model_epoch_400.pth",
     },
     "cup_background_left_front": {
-        "model":"/home/lawrence/xembody/ur5bc/models/01-28-cup-background/ds_xembody-cup-background_cams_20120598_left_24400334_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240129223940/models/model_epoch_400.pth",
+        "model":"/home/lawrence/xembody/xembody/ur5bc/models/01-28-cup-background/ds_xembody-cup-background_cams_20120598_left_24400334_left_ldkeys_proprio_backbone_ResNet18Conv_visdim_64_langcond_False/20240129223940/models/model_epoch_400.pth",
     },
     
     
+    "tiger_background_left_gripper_proprio_mvp_vits_mae_hoi": {
+        "model": "/home/lawrence/xembody/xembody/ur5bc/models/04-09-None/ds_xembody-tiger-background_cams_20120598_left_cams_left_ldkeys_proprio_mvp_vits-mae-hoi_nonfrozen/20240410210053/models/model_epoch_340.pth",
+        'action_space': "cartesian_position",
+        'robot_state_keys': ["cartesian_position", "gripper_position"],
+    },
+    "tiger_background_left_gripper_proprio_r3m_resnet18": {
+        "model": "/home/lawrence/xembody/xembody/ur5bc/models/04-09-None/ds_xembody-tiger-background_cams_20120598_left_cams_left_ldkeys_proprio_r3m_resnet18_nonfrozen/20240410143534/models/model_epoch_400.pth",
+        'action_space': "cartesian_position",
+        'robot_state_keys': ["cartesian_position", "gripper_position"],
+    },
+    "tiger_background_left_gripper_proprio_r3m_resnet50": {
+        "model": "/home/lawrence/xembody/xembody/ur5bc/models/04-09-None//ds_xembody-tiger-background_cams_20120598_left_cams_left_ldkeys_proprio_r3m_resnet50_nonfrozen/20240412150719/models/model_epoch_400.pth",
+        'action_space': "cartesian_position",
+        'robot_state_keys': ["cartesian_position", "gripper_position"],
+    },
+
+    "tiger_background_left_gripper_proprio": {
+        "model": "/home/lawrence/xembody/xembody/ur5bc/models/04-07-None/ds_xembody-tiger-background_cams_20120598_left_cams_left_gripper_proprio/20240407014019/models/model_epoch_400.pth",
+        'action_space': "cartesian_position",
+        'robot_state_keys': ["cartesian_position", "gripper_position"],
+    },
+    "cup_background_left_gripper_proprio": {
+        "model": "/home/lawrence/xembody/xembody/ur5bc/models/04-07-None/ds_xembody-cup-background_cams_20120598_left_cams_left_gripper_proprio/20240407014210/models/model_epoch_400.pth",
+        'action_space': "cartesian_position",
+        'robot_state_keys': ["cartesian_position", "gripper_position"],
+    },
+    "drawer_left_gripper_proprio": {
+        "model": "/home/lawrence/xembody/xembody/ur5bc/models/04-07-None/ds_xembody-drawer_cams_20120598_left_cams_left_gripper_proprio/20240407014521/models/model_epoch_400.pth",
+        'action_space': "cartesian_position",
+        'robot_state_keys': ["cartesian_position", "gripper_position"],
+    },
+    "toaster_left_gripper_proprio": {
+        "model": "/home/lawrence/xembody/xembody/ur5bc/models/04-07-None/ds_xembody-toaster_cams_20120598_left_cams_left_gripper_proprio/20240411013926/models/model_epoch_400.pth",
+        'action_space': "cartesian_position",
+        'robot_state_keys': ["cartesian_position", "gripper_position"],
+    },
 }
 
 
@@ -78,13 +114,13 @@ model_config_mapping = {
 
 
 def main():
-    # env = RobotEnv(blocking_gripper=False, cam_ids=[22008760])
-    env = RobotEnv(blocking_gripper=False, cam_ids=[22008760, 32474776])
+    env = RobotEnv(blocking_gripper=False, cam_ids=[22008760, 18026681])
+    # env = RobotEnv(blocking_gripper=False, cam_ids=[22008760, 32474776])
     # env = RobotEnv(blocking_gripper=True, cam_ids=[22008760, 32474776])
     index = 0
 
-    model_name = "tiger_background_left"
-    saving_directory = "/home/lawrence/xembody/ur5bc/rollout_data/test"
+    model_name = "cup_background_left"
+    saving_directory = "/home/lawrence/xembody/xembody/ur5bc/rollout_data/test"
     
     import json
     

@@ -5,9 +5,9 @@ camera_link_to_real_camera_link = np.array([[0,0,1],
                                             [-1,0,0],
                                             [0,-1,0]])
 
-world_to_real_camera_link = np.array([[-0.02342304, -0.81669068, -0.57660012],
-                                      [-0.99945141,  0.00562112,  0.03263869],
-                                      [-0.02341457,  0.5770483 , -0.81637431]])
+world_to_real_camera_link = np.array([[-0.86235505,0.32847092,-0.38529289],
+                                      [0.50327672,  -0.72315981,  0.35937403],
+                                      [-0.05528389,  -0.81752946 , -0.57322707]])
 
 
 real_camera_link_to_camera_link = np.linalg.inv(camera_link_to_real_camera_link)

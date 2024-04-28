@@ -182,10 +182,11 @@ class RobotEnv(gym.Env):
             self._robot = UR5Robot(gripper=3)
             # self._robot.gripper.activate()
         # tiger, higher table
-        self._robot.set_tcp(RigidTransform(translation=[0.0, 0.0,0.015], rotation=RigidTransform.z_axis_rotation(np.pi/2))) # Robotiq gripper
+        # self._robot.set_tcp(RigidTransform(translation=[0.0, 0.0,0.], rotation=RigidTransform.z_axis_rotation(0))) # Test for no state alignment. The initial pose need to be added whatever is usually the argument of RigidTransform.z_axis_rotation
+        # self._robot.set_tcp(RigidTransform(translation=[0.0, 0.0,0.015], rotation=RigidTransform.z_axis_rotation(np.pi/2))) # Robotiq gripper
         # self._robot.set_tcp(RigidTransform(translation=[0.03,-0.05,0.015], rotation=RigidTransform.z_axis_rotation(np.pi/2))) # Robotiq gripper
         # self._robot.set_tcp(RigidTransform(translation=[0,0.0,-0.03], rotation=RigidTransform.z_axis_rotation(np.pi/2))) # Robotiq gripper
-        # self._robot.set_tcp(RigidTransform(translation=[0,0.0,0.0], rotation=RigidTransform.z_axis_rotation(3*np.pi/4))) # Franka gripper
+        self._robot.set_tcp(RigidTransform(translation=[0,0.0,0.0], rotation=RigidTransform.z_axis_rotation(3*np.pi/4))) # Franka gripper
         # self._robot.set_tcp(RigidTransform(translation=[0,0.0,0.1], rotation=RigidTransform.z_axis_rotation(3*np.pi/4))) # Franka gripper
         
         # self._robot.set_tcp(RigidTransform(translation=[0,0.0,0.075], rotation=RigidTransform.z_axis_rotation(np.pi/2 - np.pi/4))) # Robotiq gripper
@@ -248,8 +249,8 @@ class RobotEnv(gym.Env):
 
         # array([0.48647344, 0.02501339, 0.36250338, 3.09887758, 0.11696749, 0.09257838]) # toaster
         # array([ 0.48894271, -0.04181265,  0.2861726 ,  3.02394863, -0.03902772, -0.57621836])
-        # pose = np.array([ 0.56641978, -0.03237182,  0.38089544,  3.01054432,  0.03306557, -0.67646613]) # cup
-        pose = np.array([0.56343067,  0.00338203,  0.25930977,  3.13144658,  0.01786906, -0.00901092]) # tiger
+        pose = np.array([ 0.56641978, -0.03237182,  0.38089544,  3.01054432,  0.03306557, -0.67646613]) # cup
+        # pose = np.array([0.56343067,  0.00338203,  0.25930977,  3.13144658,  0.01786906, -0.00901092]) # tiger
         # pose = np.array([0.48894271,  -0.02338203,  0.23930977,  3.01054432,  0.03306557, -0.67646613]) # tiger
         # pose = np.array([0.56343067,  0.00338203,  0.25930977 + 0.07,  3.13144658,  0.01786906, -0.00901092])
         # pose = np.array([ 0.48894271, -0.04181265,  0.2861726 ,  3.02394863, -0.03902772, -0.57621836]) # drawer
@@ -939,7 +940,7 @@ class RobotEnv(gym.Env):
             
             # drawer
             # if self.source_franka_target_robotiq:
-            #     current_position[0] -= 0.015
+            #     current_position[0] -= 0.03
             #     current_position[1] += 0.04
             #     current_position[2] -= 0.04
                 
@@ -950,9 +951,12 @@ class RobotEnv(gym.Env):
                 current_position[2] -= 0.02
                 
             else:
-                current_position[0] -= 0.02
-                current_position[1] -= 0.01
-                current_position[2] += 0.03
+                pass
+                # print("Current position: ", current_position)
+                # current_position[0] -= 0.02
+                # current_position[1] -= 0.01
+                # current_position[2] += 0.03
+                # current_position[-1] -= np.pi / 2
             
             
             if self.blocking_gripper:
@@ -1009,8 +1013,8 @@ class RobotEnv(gym.Env):
             writer = AsyncWrite(inpainted_side_image, obs_dict["third_person_image"][0], obs_dict["third_person_image"][1], traj_index, saving_directory, i, front=False)
             writer.start()
             
-            writer2 = AsyncWrite(inpainted_front_image, obs_dict["third_person_image2"][0], obs_dict["third_person_image2"][1][::-1, ::-1], traj_index, saving_directory, i, front=True)
-            writer2.start()
+            # writer2 = AsyncWrite(inpainted_front_image, obs_dict["third_person_image2"][0], obs_dict["third_person_image2"][1][::-1, ::-1], traj_index, saving_directory, i, front=True)
+            # writer2.start()
             
             
             inpainted_side_image_256 = cv2.resize(inpainted_side_image, (256, 256))
@@ -1073,11 +1077,13 @@ class RobotEnv(gym.Env):
                     action[j] += np.pi * 2
         
             print(action)
+            # action[-2] += 3*np.pi/4
+            # print("corrected action:", action)
             # action = np.array([0,0,0,0,0,0,0])
             
             # drawer
             # if self.source_franka_target_robotiq:
-            #     action[0] += 0.015
+            #     action[0] += 0.03
             #     action[1] -= 0.04
             #     action[2] += 0.04
                 
