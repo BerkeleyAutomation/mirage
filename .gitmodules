@@ -1,15 +1,9 @@
 [submodule "robosuite"]
 	path = robosuite
-	url = git@github.com:KDharmarajanDev/robosuite.git
+	url = git@github.com:BerkeleyAutomation/mirage-robosuite.git
 [submodule "robomimic"]
 	path = robomimic
-	url = git@github.com:KDharmarajanDev/robomimic.git
-[submodule "Orbit"]
-	path = Orbit
-	url = git@github.com:KDharmarajanDev/Orbit.git
-[submodule "ARM"]
-	path = ARM
-	url = git@github.com:KDharmarajanDev/ARM.git
+	url = git@github.com:BerkeleyAutomation/mirage-robomimic.git
 [submodule "mimicgen_environments"]
 	path = mimicgen_environments
-	url = git@github.com:NVlabs/mimicgen_environments.git
+	url = git@github.com:BerkeleyAutomation/mirage_mimicgen_environments.git
