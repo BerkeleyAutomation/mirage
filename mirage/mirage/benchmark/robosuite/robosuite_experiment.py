@@ -43,7 +43,8 @@ class RobosuiteExperiment:
                             "--num_iter_max", str(self._config.source_num_iter_max),
                             "--horizon", str(self._config.horizon),
                             "--robot_name", self._config.source_robot_name,
-                            "--save_stats_path", os.path.join(self._config.results_folder, "source.txt")
+                            "--save_stats_path", os.path.join(self._config.results_folder, "source.txt"),
+                            "--device", self._config.device
                             ]
         target_agent_args = ["python3", 
                             "evaluate_policy_demo_target_robot_client.py",
@@ -54,15 +55,20 @@ class RobosuiteExperiment:
                             "--num_iter_max", str(self._config.target_num_iter_max),
                             "--horizon", str(self._config.horizon),
                             "--robot_name", self._config.target_robot_name,
-                            "--save_stats_path", os.path.join(self._config.results_folder, "target.txt")
+                            "--save_stats_path", os.path.join(self._config.results_folder, "target.txt"),
+                            "--device", self._config.device
                             ]
         
+        if self._config.naive:
+            source_agent_args.append("--naive")
+            target_agent_args.append("--naive")
+        
         if self._config.source_gripper_type:
-            source_agent_args.append("--gripper_type")
+            source_agent_args.append("--gripper")
             source_agent_args.append(self._config.source_gripper_type)
 
         if self._config.target_gripper_type:
-            target_agent_args.append("--gripper_type")
+            target_agent_args.append("--gripper")
             target_agent_args.append(self._config.target_gripper_type)
         
         if self._config.connection:
