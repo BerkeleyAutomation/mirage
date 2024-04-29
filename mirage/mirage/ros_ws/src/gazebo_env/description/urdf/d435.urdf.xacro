@@ -108,8 +108,8 @@
             <horizontal_fov>0.7853981634</horizontal_fov>
             <image>
                 <format>R8G8B8</format>
-                <width>512</width>
-                <height>512</height>
+                <width>256</width>
+                <height>256</height>
                 <!-- <width>256</width>
                 <height>256</height> -->
             </image>

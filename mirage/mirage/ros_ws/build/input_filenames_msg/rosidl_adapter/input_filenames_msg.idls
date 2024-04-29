@@ -1,0 +1,10 @@
+/home/mirage/mirage/mirage/mirage/ros_ws/build/input_filenames_msg/rosidl_adapter/input_filenames_msg:msg/InputFiles.idl
+/home/mirage/mirage/mirage/mirage/ros_ws/build/input_filenames_msg/rosidl_adapter/input_filenames_msg:msg/InputFilesData.idl
+/home/mirage/mirage/mirage/mirage/ros_ws/build/input_filenames_msg/rosidl_adapter/input_filenames_msg:msg/InputFilesRobosuite.idl
+/home/mirage/mirage/mirage/mirage/ros_ws/build/input_filenames_msg/rosidl_adapter/input_filenames_msg:msg/InputFilesRobosuiteData.idl
+/home/mirage/mirage/mirage/mirage/ros_ws/build/input_filenames_msg/rosidl_adapter/input_filenames_msg:msg/InputFilesFrankaToFranka.idl
+/home/mirage/mirage/mirage/mirage/ros_ws/build/input_filenames_msg/rosidl_adapter/input_filenames_msg:msg/InputFilesRealDataMulti.idl
+/home/mirage/mirage/mirage/mirage/ros_ws/build/input_filenames_msg/rosidl_adapter/input_filenames_msg:msg/InputFilesDiffusionData.idl
+/home/mirage/mirage/mirage/mirage/ros_ws/build/input_filenames_msg/rosidl_adapter/input_filenames_msg:msg/InputFilesSimData.idl
+/home/mirage/mirage/mirage/mirage/ros_ws/build/input_filenames_msg/rosidl_adapter/input_filenames_msg:msg/InputFilesRealData.idl
+/home/mirage/mirage/mirage/mirage/ros_ws/build/input_filenames_msg/rosidl_adapter/input_filenames_msg:msg/MultipleInpaintImages.idl

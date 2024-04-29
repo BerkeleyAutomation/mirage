@@ -1,0 +1,11 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/ur5_and_panda_gripper_early_inpaint_control_plugin.dir/ur5_and_panda_gripper_early_inpaint_control_plugin/ur5_and_panda_gripper_early_inpaint_control_plugin.cc.o"
+  "CMakeFiles/ur5_and_panda_gripper_early_inpaint_control_plugin.dir/ur5_and_panda_gripper_early_inpaint_control_plugin/ur5_and_panda_gripper_early_inpaint_control_plugin.cc.o.d"
+  "libur5_and_panda_gripper_early_inpaint_control_plugin.pdb"
+  "libur5_and_panda_gripper_early_inpaint_control_plugin.so"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/ur5_and_panda_gripper_early_inpaint_control_plugin.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

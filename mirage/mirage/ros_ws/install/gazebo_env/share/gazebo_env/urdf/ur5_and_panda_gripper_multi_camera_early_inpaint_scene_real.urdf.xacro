@@ -1,0 +1,55 @@
+<robot name="ur5e_scene" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find gazebo_env)/urdf/ur5_with_gripper.urdf.xacro" />
+  
+  <xacro:include filename="$(find gazebo_env)/urdf/panda_arm.xacro"/>
+  <xacro:include filename="$(find gazebo_env)/urdf/hand.xacro"/>
+  <link name="world" />
+  <xacro:ur5_gripper parent="world">
+      <origin xyz="0 0 10" rpy="0 0 0" />
+  </xacro:ur5_gripper>
+  <xacro:include filename="$(find gazebo_env)/urdf/real_ur5_cam_left.urdf.xacro" />
+  <xacro:include filename="$(find gazebo_env)/urdf/real_ur5_cam_right.urdf.xacro" />
+  <xacro:sensor_d435_ur5_left parent="world">
+    <origin xyz="0.65147084 0.41435814 10.51452678" rpy="0.11023138  0.57410099 -1.9646524" />
+  </xacro:sensor_d435_ur5_left>
+  <xacro:sensor_d435_ur5_right parent="world">
+    <origin xyz="0.5538436 0.47336682 10.50176154" rpy="0.05888073  0.52934421 -1.97405572" />
+  </xacro:sensor_d435_ur5_right>
+
+  <!-- Lift task-->
+  <xacro:panda_arm connected_to="world" xyz="10 0 10"/> 
+  <xacro:hand ns="panda" rpy="0 0 ${3 * pi/4}" connected_to="panda_link8"/>
+  
+
+  <!-- Can task-->
+  <!-- <xacro:panda_arm connected_to="world" xyz="-0.56 -0.1 10.912"/>  -->
+  <xacro:include filename="$(find gazebo_env)/urdf/real_panda_cam_left.urdf.xacro" />
+  <xacro:include filename="$(find gazebo_env)/urdf/real_panda_cam_right.urdf.xacro" />
+  <xacro:sensor_d435_panda_left parent="world">
+    <origin xyz="10.65147084 0.41435814 10.51452678" rpy="0.11023138  0.57410099 -1.9646524" />
+  </xacro:sensor_d435_panda_left>
+  <xacro:sensor_d435_panda_right parent="world">
+    <origin xyz="10.5538436 0.47336682 10.50176154" rpy="0.05888073  0.52934421 -1.97405572" />
+  </xacro:sensor_d435_panda_right>
+
+  <xacro:include filename="$(find gazebo_env)/urdf/ur5_with_no_gripper.urdf.xacro" />
+  <xacro:ur5_no_gripper parent="world">
+      <origin xyz="10 20 10" rpy="0 0 0" />
+  </xacro:ur5_no_gripper>
+
+  <xacro:include filename="$(find gazebo_env)/urdf/real_ur5_cam_no_gripper_left.urdf.xacro" />
+  <xacro:sensor_d435_ur5_no_gripper_left parent="world">
+    <origin xyz="10.68760298 20.39006238 10.46098218" rpy="0.06390863  0.58797942 -2.01314893" />
+  </xacro:sensor_d435_ur5_no_gripper_left>
+
+  <xacro:include filename="$(find gazebo_env)/urdf/real_ur5_cam_no_gripper_right.urdf.xacro" />
+  <xacro:sensor_d435_ur5_no_gripper_right parent="world">
+    <origin xyz="10.68760298 25.39006238 10.46098218" rpy="0.06390863  0.58797942 -2.01314893" />
+  </xacro:sensor_d435_ur5_no_gripper_right>
+  <gazebo>
+    <plugin name="ur5_and_panda_gripper_early_inpaint_control" filename="libur5_and_panda_gripper_early_inpaint_control_plugin.so" />
+  </gazebo>
+  <gazebo>
+    <plugin name="no_physics" filename="libno_physics_plugin.so" />
+  </gazebo>
+</robot>

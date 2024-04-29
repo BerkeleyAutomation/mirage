@@ -1,0 +1,21 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from input_filenames_msg/msg/InputFilesSimData.msg
+// generated code does not contain a copyright notice
+
+#include "sensor_msgs/msg/Image.idl"
+
+module input_filenames_msg {
+  module msg {
+    struct InputFilesSimData {
+      sensor_msgs::msg::Image rgb;
+
+      sequence<double> depth_map;
+
+      sequence<uint8> segmentation;
+
+      sequence<double> ee_pose;
+
+      sequence<double> interpolated_gripper;
+    };
+  };
+};

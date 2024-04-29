@@ -22,9 +22,28 @@ Clone the repo:
 git clone --recurse-submodules git@github.com:BerkeleyAutomation/mirage.git
 ```
 
-Create a conda environment or virtualenv:
+Install mamba and robostack to enable some python package interplay with ROS:
 ```
-conda create --name mirage python=3.8
+conda install mamba -c conda-forge
+mamba create -n mirage python=3.10
+mamba activate mirage
+
+# this adds the conda-forge channel to the new created environment configuration 
+conda config --env --add channels conda-forge
+# and the robostack channel
+conda config --env --add channels robostack-staging
+# remove the defaults channel just in case, this might return an error if it is not in the list which is ok
+conda config --env --remove channels defaults
+
+mamba install ros-humble-desktop
+mamba install ros-humble-gazebo-ros
+
+# Need to reactivate the environment for changes to take effect
+mamba deactivate
+mamba activate mirage
+
+# Install for being able to build package
+mamba install compilers cmake pkg-config make ninja colcon-common-extensions catkin_tools rosdep
 ```
 
 Install the mirage Python package.
@@ -33,12 +52,19 @@ cd mirage
 pip install -e .
 ```
 
-Follow the installation instructions for the given simulator by going into the forked repositories.
+Follow the installation instructions for the downloaded robomimic, robosuite, and mimicgen_environments submodules by going into them and looking at the README.
+
+Build the ROS workspace by running (from the root of this repo)
+```
+cd mirage/mirage/ros_ws
+colcon build
+source install/setup.bash
+```
 
 ## Usage
-For robosuite, to run an experiment, 
+For robosuite, to run an experiment (from the root of this repo), 
 ```
-cd mirage/benchmark/robosuite
+cd mirage/mirage/benchmark/robosuite
 python3 run_robosuite_benchmark.py --config_file config/example_config.yaml
 ```
 Please take a look at the example_config and the different parameters that can be set to run different tasks, agents, and robots. For the above code to work, you must change the agents to the path for the model checkpoints in robosuite.

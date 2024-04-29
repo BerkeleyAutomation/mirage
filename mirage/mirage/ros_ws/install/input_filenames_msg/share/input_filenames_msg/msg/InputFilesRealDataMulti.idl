@@ -1,0 +1,13 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from input_filenames_msg/msg/InputFilesRealDataMulti.msg
+// generated code does not contain a copyright notice
+
+#include "input_filenames_msg/msg/InputFilesRealData.idl"
+
+module input_filenames_msg {
+  module msg {
+    struct InputFilesRealDataMulti {
+      sequence<input_filenames_msg::msg::InputFilesRealData> data_pieces;
+    };
+  };
+};

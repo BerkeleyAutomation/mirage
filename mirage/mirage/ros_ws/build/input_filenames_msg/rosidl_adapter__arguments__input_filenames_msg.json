@@ -1,0 +1,15 @@
+{
+  "package_name": "input_filenames_msg",
+  "non_idl_tuples": [
+    "/home/mirage/mirage/mirage/mirage/ros_ws/src/input_filenames_msg:msg/InputFiles.msg",
+    "/home/mirage/mirage/mirage/mirage/ros_ws/src/input_filenames_msg:msg/InputFilesData.msg",
+    "/home/mirage/mirage/mirage/mirage/ros_ws/src/input_filenames_msg:msg/InputFilesRobosuite.msg",
+    "/home/mirage/mirage/mirage/mirage/ros_ws/src/input_filenames_msg:msg/InputFilesRobosuiteData.msg",
+    "/home/mirage/mirage/mirage/mirage/ros_ws/src/input_filenames_msg:msg/InputFilesFrankaToFranka.msg",
+    "/home/mirage/mirage/mirage/mirage/ros_ws/src/input_filenames_msg:msg/InputFilesRealDataMulti.msg",
+    "/home/mirage/mirage/mirage/mirage/ros_ws/src/input_filenames_msg:msg/InputFilesDiffusionData.msg",
+    "/home/mirage/mirage/mirage/mirage/ros_ws/src/input_filenames_msg:msg/InputFilesSimData.msg",
+    "/home/mirage/mirage/mirage/mirage/ros_ws/src/input_filenames_msg:msg/InputFilesRealData.msg",
+    "/home/mirage/mirage/mirage/mirage/ros_ws/src/input_filenames_msg:msg/MultipleInpaintImages.msg"
+  ]
+}
