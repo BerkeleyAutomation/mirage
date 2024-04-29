@@ -216,6 +216,14 @@ class TargetRobot(Robot):
                             from mirage.infra.ros_inpaint_publisher_sim import ROSInpaintSimData
                             eef_pose = self.compute_eef_pose()
                             eef_pose_matrix = T.pose2mat((eef_pose[:3], eef_pose[3:]))
+
+                            # For some reason the Can / Pick and Place task is very weird
+                            # It has a y offset of -0.1 for the base of the robot, so there needs to be a
+                            # 0.1 offset for the ee to match ground truth, this needs more investigation....
+                            from robosuite.environments.manipulation.pick_place import PickPlace
+                            if isinstance(self.core_env, PickPlace):
+                                eef_pose_matrix[1] += 0.1
+
                             data = ROSInpaintSimData(ros_rgb_img, ros_depth_img, ros_segmentation_mask, eef_pose_matrix, obs['robot0_gripper_qpos'][-1:])
                             print("Joints including gripper", sent_joint_angles)
                             self.ros_inpaint_publisher.publish_to_ros_node(data)

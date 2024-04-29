@@ -22,31 +22,11 @@ Clone the repo:
 git clone --recurse-submodules git@github.com:BerkeleyAutomation/mirage.git
 ```
 
-Install mamba and robostack to enable some python package interplay with ROS:
+Install ROS 2 and setup the Gazebo Environment for Inpainting by following the instructions in `mirage/mirage/ros_ws/src/README.md` 
+
+Create a conda environment and install the mirage Python package.
 ```
-conda install mamba -c conda-forge
-mamba create -n mirage python=3.10
-mamba activate mirage
-
-# this adds the conda-forge channel to the new created environment configuration 
-conda config --env --add channels conda-forge
-# and the robostack channel
-conda config --env --add channels robostack-staging
-# remove the defaults channel just in case, this might return an error if it is not in the list which is ok
-conda config --env --remove channels defaults
-
-mamba install ros-humble-desktop
-
-# Need to reactivate the environment for changes to take effect
-mamba deactivate
-mamba activate mirage
-
-# Install for being able to build package
-mamba install compilers cmake pkg-config make ninja colcon-common-extensions catkin_tools rosdep
-```
-
-Install the mirage Python package.
-```
+conda create -n mirage --python=3.10
 cd mirage
 pip install -e .
 ```
@@ -94,7 +74,14 @@ Please take a look at the example_config and the different parameters that can b
 ## Citation
 If you utilized the benchmark, please consider citing the paper:
 ```
-TODO: Add link to ArXiv / publication
+@misc{chen2024mirage,
+      title={Mirage: Cross-Embodiment Zero-Shot Policy Transfer with Cross-Painting}, 
+      author={Lawrence Yunliang Chen and Kush Hari and Karthik Dharmarajan and Chenfeng Xu and Quan Vuong and Ken Goldberg},
+      year={2024},
+      eprint={2402.19249},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO}
+}
 ```
 
 ## Contributing

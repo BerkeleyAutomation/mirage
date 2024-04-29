@@ -4,7 +4,7 @@
   <xacro:include filename="$(find gazebo_env)/urdf/hand_robosuite.xacro"/>
   <link name="world" />
   <!-- Lift task-->
-  <xacro:panda_arm connected_to="world" xyz="-0.56 0 10.912"/> 
+  <xacro:panda_arm connected_to="world" xyz="-0.56 -0.1 10.912"/> 
 
   <!-- Can task-->
   <!-- <xacro:panda_arm connected_to="world" xyz="-0.56 -0.1 10.912"/>  -->
