@@ -69,7 +69,7 @@ source mirage/mirage/ros_ws/install/setup.bash
 cd mirage/mirage/benchmark/robosuite
 python3 run_robosuite_benchmark.py --config config/example_config.yaml
 ```
-Please take a look at the example_config and the different parameters that can be set to run different tasks, agents, and robots. For the above code to work, you must change the agents to the path for the model checkpoints in robosuite.
+Please take a look at the example_config and the different parameters that can be set to run different tasks, agents, and robots. For the above code to work, you must change the agents to the path for the model checkpoints in robosuite. We have provided the sample models used for evaluation in `mirage/mirage/models/{task}/{state_input}/{model_name}.pt`. The tasks are can, lift, square, stack, and two piece. The state inputs could be image_no_proprio (RGB observation only), image_proprio (RGB + proprio state), and low_dim (proprio + manipulated object position state).
 
 ## Citation
 If you utilized the benchmark, please consider citing the paper:
