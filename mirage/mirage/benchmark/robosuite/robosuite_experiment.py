@@ -98,7 +98,6 @@ class RobosuiteExperiment:
             target_agent_args.append("--inpaint_enabled")
 
             if self._config.use_ros:
-                source_agent_args.append("--use_ros")
                 target_agent_args.append("--use_ros")
 
             if self._config.offline_eval:

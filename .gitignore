@@ -34,3 +34,7 @@ __pycache__
 # No wandb outputs or runs
 **/wandb/
 **/runs/
+
+mirage/mirage/ros_ws/build/*
+mirage/mirage/ros_ws/install/*
+mirage/mirage/ros_ws/log/*

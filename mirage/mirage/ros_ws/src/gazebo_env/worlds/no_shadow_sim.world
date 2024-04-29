@@ -32,7 +32,7 @@
       </spot>
     </light>
     <light name='user_spot_light_11' type='spot'>
-      <pose>19.45 0.0 10.651246 0.0 1.57 0</pose>
+      <pose>14.560474 0.0 10.651246 0.0 1.57 0</pose>
       <diffuse>0.5 0.5 0.5 1</diffuse>
       <specular>0.1 0.1 0.1 1</specular>
       <direction>0 0 -1</direction>

@@ -4,9 +4,11 @@ from scipy.spatial.transform import Rotation
 camera_link_to_real_camera_link = np.array([[0,0,1],
                                             [-1,0,0],
                                             [0,-1,0]])
-world_to_real_camera_link = np.array([[-0.9065319 ,  0.25194152, -0.33871137],
-                                      [0.41907041,  0.44056495, -0.79390334],
-                                      [-0.05079286, -0.86164261, -0.50496742]])
+
+world_to_real_camera_link = np.array([[-0.86235505,0.32847092,-0.38529289],
+                                      [0.50327672,  -0.72315981,  0.35937403],
+                                      [-0.05528389,  -0.81752946 , -0.57322707]])
+
 
 real_camera_link_to_camera_link = np.linalg.inv(camera_link_to_real_camera_link)
 

@@ -141,7 +141,7 @@ def generate_launch_description():
 
     nodes = [
         gazebo_server,
-        #gazebo_client,
+        gazebo_client,
         node_robot_state_publisher,
         spawn_entity,
         joint_state_publisher_node,

@@ -52,6 +52,17 @@ class TargetRobot(Robot):
                         else:
                             print("NOT USING ROS! Will use the groundtruth Franka masks instead")                        
     
+        self.should_kill_early = False
+        
+        import threading
+        self.thread = threading.Thread(target=self.wait_for_skip)
+        self.thread.start()
+
+    def wait_for_skip(self):
+        while True:
+            input()
+            self.should_kill_early = True
+
     def image_to_pointcloud(self, depth_map, camera_name, camera_height=84, camera_width=84, segmask=None):
         """
         Convert depth image to point cloud
@@ -205,6 +216,14 @@ class TargetRobot(Robot):
                             from mirage.infra.ros_inpaint_publisher_sim import ROSInpaintSimData
                             eef_pose = self.compute_eef_pose()
                             eef_pose_matrix = T.pose2mat((eef_pose[:3], eef_pose[3:]))
+
+                            # For some reason the Can / Pick and Place task is very weird
+                            # It has a y offset of -0.1 for the base of the robot, so there needs to be a
+                            # 0.1 offset for the ee to match ground truth, this needs more investigation....
+                            from robosuite.environments.manipulation.pick_place import PickPlace
+                            if isinstance(self.core_env, PickPlace):
+                                eef_pose_matrix[1] += 0.1
+
                             data = ROSInpaintSimData(ros_rgb_img, ros_depth_img, ros_segmentation_mask, eef_pose_matrix, obs['robot0_gripper_qpos'][-1:])
                             print("Joints including gripper", sent_joint_angles)
                             self.ros_inpaint_publisher.publish_to_ros_node(data)
@@ -340,6 +359,11 @@ class TargetRobot(Robot):
                 if step_i - source_finished_step >= 10:
                     done = True
             
+            # If human hits enter, kill off the run, it isn't feasible
+            if self.should_kill_early:
+                self.should_kill_early = False
+                done = True
+
             # tell the source robot that the target robot is ready
             # Create an instance of Data() to send to client.
             variable = Data()

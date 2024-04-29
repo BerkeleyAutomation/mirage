@@ -60,9 +60,9 @@ class ReprojectTestNode(Node):
         data_dict = dict(zip(map(tuple,keys),map(tuple,values)))
         points = np.array([x.reshape(-1),y.reshape(-1),z.reshape(-1)]).T
         
-        new_frame_to_old_frame = np.array([[0.98,0,0.199,0],
-                                           [0,1,0,0],
-                                           [-0.199,0,0.980,0],
+        new_frame_to_old_frame = np.array([[0.995,-0.1,0.02,0],
+                                           [0.1,0.995,-0.004,0],
+                                           [-0.02,0.006,1,0],
                                            [0,0,0,1]])
         homogenous_points = np.column_stack((points, np.ones(len(points))))
         # Create an Open3D point cloud
@@ -76,6 +76,9 @@ class ReprojectTestNode(Node):
         point_dict = dict(zip(map(tuple,transformed_points),map(tuple,homogenous_points)))
         new_image_mask = np.zeros((msg.rgb.height,msg.rgb.width)).astype(np.uint8)
         new_image = np.zeros((msg.rgb.height,msg.rgb.width,3)).astype(np.uint8)
+        new_depth = np.zeros((msg.rgb.height,msg.rgb.width)).astype(np.float64)
+        import pdb
+        pdb.set_trace()
         new_fx = fx
         new_fy = fy
         new_cx = cx
@@ -108,6 +111,7 @@ class ReprojectTestNode(Node):
         cv2.imwrite('image_overlap.png',new_image_mask)
         cv2.imwrite('image_overlap_color.png',new_image)
         cv2.imwrite('image_overlap_inpaint.png',inpainted_image)
+        return inpainted_image,
         
 
         

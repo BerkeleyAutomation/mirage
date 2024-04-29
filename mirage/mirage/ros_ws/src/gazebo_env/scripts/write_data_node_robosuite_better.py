@@ -2,13 +2,12 @@
 
 import rclpy
 from rclpy.node import Node
+import trimesh
 from std_msgs.msg import Header, Float64MultiArray,Bool
 from sensor_msgs.msg import PointCloud2, PointField, CameraInfo, Image
 import numpy as np
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
-import trimesh
-import open3d as o3d
 import os
 import glob
 import subprocess
@@ -28,7 +27,6 @@ from sensor_msgs.msg import JointState
 from tracikpy import TracIKSolver
 from mdh.kinematic_chain import KinematicChain
 from mdh import UnReachable
-import kinpy as kp
 from geometry_msgs.msg import Vector3, Quaternion
 from scipy.spatial.transform import Rotation as R
 from message_filters import ApproximateTimeSynchronizer, Subscriber
@@ -39,10 +37,13 @@ class WriteData(Node):
         self.is_ready_ = False
         self.thetas_ = None
         self.debug_ = False
-        self.panda_urdf_ = os.path.join(os.path.dirname(os.path.realpath(__file__)),'../../../../src/gazebo_env/description/urdf/panda_ik_robosuite.urdf')        
+
+        current_filepath = os.path.abspath(__file__)
+        current_filepath = current_filepath[:current_filepath.rfind('/')]
+        current_filepath + ''
+        self.panda_urdf_ = current_filepath + "/../../share/gazebo_env/urdf/panda_ik_robosuite.urdf"        
         self.panda_solver_ = TracIKSolver(self.panda_urdf_,"world","panda_ee")
-        self.ur5e_urdf_ = os.path.join(os.path.dirname(os.path.realpath(__file__)),'../../../../src/gazebo_env/description/urdf/ur5e_ik_robosuite.urdf')
-        self.chain_ = kp.build_chain_from_urdf(open(self.panda_urdf_).read())
+        self.ur5e_urdf_ = current_filepath + "/../../share/gazebo_env/urdf/ur5e_ik_robosuite.urdf"
         self.ur5e_solver_ = TracIKSolver(self.ur5e_urdf_,"world","ur5e_ee_link")
 
         # real_camera_link to world and then multiply translation by 1000
@@ -81,26 +82,8 @@ class WriteData(Node):
         self.joint_state_msg = JointState()
 
         #Harcoding start position
-        # self.q_init_ = np.array([-0.04536656,  0.22302045, -0.01685448, -2.57859539,  0.02532237,  2.93147512, 0.83630218])
-        self.q_init_ = np.array([-0.0644708305,  0.528892205, -0.0626163565,  1.85382987, 0.0547194409,  0.614586870, -1.73115559])
+        self.q_init_ = np.array([-0.04536656 , 0.22302045, -0.01685448, -2.57859539,  0.02532237 , 2.93147512,0.83630218])
 
-        self.urdf_xacro_path_ = os.path.join(FindPackageShare(package="gazebo_env").find("gazebo_env"),"urdf","panda_arm_hand_only.urdf.xacro")
-        xacro_command = "ros2 run xacro xacro " + self.urdf_xacro_path_
-        xacro_subprocess = subprocess.Popen(
-            xacro_command,
-            shell=True,
-            stdout=subprocess.PIPE,
-        )
-        urdf_string = ""
-        while True:
-            line = xacro_subprocess.stdout.readline()
-            if line:
-                line_byte = line.strip()
-                line = line_byte.decode("utf-8")
-                urdf_string += line
-            else:
-                break
-        root = ET.fromstring(urdf_string)
         self.publishers_ = []
         self.subscribers_ = []
         self.timers_ = []
@@ -135,40 +118,12 @@ class WriteData(Node):
         timer_period = 0.5
         self.links_info_ = []
         self.original_meshes_ = []
-        for link in root.iter('link'):
-            element_name1 = "visual"
-            found_element1 = link.find(".//" + element_name1)
-            element_name2 = "geometry"
-            found_element2 = link.find(".//" + element_name2)
-            element_name3 = "mesh"
-            found_element3 = link.find(".//" + element_name3)
-            if (found_element1 is not None) and (found_element2 is not None) and (found_element3 is not None):
-                link_name = link.attrib.get('name')
-                for visual in link.iter("visual"):
-                    origin_element = visual.find(".//origin")
-                    rpy_str = origin_element.attrib.get('rpy')
-                    xyz_str = origin_element.attrib.get('xyz')
-                    for geometry in visual.iter("geometry"):
-                        for mesh in geometry.iter("mesh"):
-                            filename = mesh.attrib.get('filename')[7:]
-                            #publisher = self.create_publisher(PointCloud2,link_name+"_pointcloud",10)
-                            #publisher_camera = self.create_publisher(PointCloud2,link_name+"_pointcloud_camera",10)
-                            #self.publishers_.append(publisher)
-                            #self.publishers_.append(publisher_camera)
-                            #subscriber = Subscriber(self,PointCloud2,link_name+"_pointcloud")
-                            #self.subscribers_.append(subscriber)
-                            mesh = self.prelimMeshFast(filename,link_name,rpy_str,xyz_str)
-                            self.original_meshes_.append(mesh)
-                            self.links_info_.append([filename,link_name,rpy_str,xyz_str])
-                            #timer = self.create_timer(timer_period,partial(self.debugTimerCallback,filename,link_name,publisher,publisher_camera,rpy_str,xyz_str))
-                            #self.timers_.append(timer)
         self.full_publisher_ = self.create_publisher(PointCloud2,"full_pointcloud",1)
         self.inpainted_publisher_ = self.create_publisher(Image,"inpainted_image",1)
         #self.full_subscriber_ = self.create_subscription(PointCloud2,'full_pointcloud',self.fullPointcloudCallback,10)
         self.full_mask_image_publisher_ = self.create_publisher(Image,"full_mask_image",1)
         self.updated_joints_ = False
         self.is_ready_ = True
-        print("WE READY")
     
     def gazeboCallback(self,joints,gazebo_rgb,gazebo_depth):
         joint_command_np = np.array(self.robosuite_qout_list_)
@@ -412,10 +367,10 @@ class WriteData(Node):
         robosuite_rgb_image_masked_inpaint = cv2.inpaint(robosuite_rgb_image_masked,robosuite_segmentation_mask_255,inpaintRadius=3,flags=cv2.INPAINT_TELEA)
         attempt = robosuite_rgb_image_masked_inpaint * joined_depth_argmin[:,:,np.newaxis]
         inverted_joined_depth_argmin = 1 - joined_depth_argmin
-       # gazebo_robot_only_lab = cv2.cvtColor(gazebo_robot_only_rgb,cv2.COLOR_BGR2LAB)
-       # gazebo_robot_only_lab[:,:,0] += 50
-       # gazebo_robot_only_mod = cv2.cvtColor(gazebo_robot_only_lab,cv2.COLOR_LAB2BGR)
-       # gazebo_robot_only_rgb = gazebo_robot_only_mod
+        # gazebo_robot_only_lab = cv2.cvtColor(gazebo_robot_only_rgb,cv2.COLOR_BGR2LAB)
+        # gazebo_robot_only_lab[:,:,0] += 50
+        # gazebo_robot_only_mod = cv2.cvtColor(gazebo_robot_only_lab,cv2.COLOR_LAB2BGR)
+        # gazebo_robot_only_rgb = gazebo_robot_only_mod
         attempt2 = gazebo_robot_only_rgb * inverted_joined_depth_argmin[:,:,np.newaxis]
         inpainted_image = attempt + attempt2
         image_8bit = cv2.convertScaleAbs(inpainted_image)  # Convert to 8-bit image
@@ -851,8 +806,6 @@ class WriteData(Node):
         ee_pose = ee_pose @ end_effector_rotation_with_no_translation
         scipy_rotation = R.from_matrix(ee_pose[:3,:3])
         scipy_quaternion = scipy_rotation.as_quat()
-        # import pdb
-        # pdb.set_trace()
         qout = self.panda_solver_.ik(ee_pose,qinit=self.q_init_)
         b_xyz = 1e-5
         b_rpy = 1e-3
@@ -918,7 +871,6 @@ class WriteData(Node):
             qout_msg.data = qout_list
             self.panda_joint_command_publisher_.publish(qout_msg)
             self.joint_commands_callback(qout_msg)
-            self.setupMeshes(rgb, depth_map, segmentation_data)
             # end_time = time.time()
             # print("Total time: " + str(end_time - start_time) + " s")
 
@@ -937,7 +889,6 @@ class WriteData(Node):
         #         msg.data.append(gripper_val)
         self.joint_state_msg.position = msg.data
         self.thetas_ = {key:value for key,value in zip(self.joint_state_msg.name,msg.data)}
-        self.fks_ = self.chain_.forward_kinematics(self.thetas_)
         self.panda_joint_state_publisher_.publish(self.joint_state_msg)
 
 
