@@ -1,6 +1,6 @@
 # Mirage
 
-Hi! Welcome to the ROS workspace setup for Mirage. This README details how to setup the ROS2 environment and Gazebo to run simulated and real experiments in the Mirage paper (RSS 2024 hopefully ;)
+Hi! Welcome to the ROS workspace setup for Mirage. This README details how to setup the ROS2 environment and Gazebo to run simulated and real experiments in the Mirage paper.
 
 ## Prerequisites
 Computer with Ubuntu 22.04
