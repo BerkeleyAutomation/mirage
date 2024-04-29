@@ -56,10 +56,10 @@ class TargetRobot(Robot):
         """
         Convert depth image to point cloud
         """
-        real_depth_map = camera_utils.get_real_depth_map(self.env.env.sim, depth_map)
+        real_depth_map = camera_utils.get_real_depth_map(self.core_env.sim, depth_map)
         # Camera transform matrix to project from camera coordinates to world coordinates.
-        extrinsic_matrix = camera_utils.get_camera_extrinsic_matrix(self.env.env.sim, camera_name=camera_name)
-        intrinsic_matrix = camera_utils.get_camera_intrinsic_matrix(self.env.env.sim, camera_name=camera_name, camera_height=camera_height, camera_width=camera_width)
+        extrinsic_matrix = camera_utils.get_camera_extrinsic_matrix(self.core_env.sim, camera_name=camera_name)
+        intrinsic_matrix = camera_utils.get_camera_intrinsic_matrix(self.core_env.sim, camera_name=camera_name, camera_height=camera_height, camera_width=camera_width)
 
         # Convert depth image to point cloud
         points = [] # 3D points in robot frame of shape […, 3]
@@ -74,8 +74,8 @@ class TargetRobot(Robot):
         return points
     
     def rollout_robot(self, video_skip=5, return_obs=False, camera_names=None, set_object_state=False, set_robot_pose=False, tracking_error_threshold=0.003, num_iter_max=100, target_robot_delta_action=False, demo_index=0):
-        
-        assert isinstance(self.env, EnvBase)
+        print(type(self.env))
+        # assert isinstance(self.env, EnvBase)
         
         self.initialize_robot()
         
@@ -105,7 +105,7 @@ class TargetRobot(Robot):
             # Pickle the object and send it to the server
             data_string = pickle.dumps(variable)
             message_length = struct.pack("!I", len(data_string))
-            self.s.send(message_length)
+            self.s.sendall(message_length)
             self.s.send(data_string)
         
         video_count = 0  # video frame counter
@@ -144,7 +144,7 @@ class TargetRobot(Robot):
                     segmentation_mask = cv2.flip(segmentation_mask, 0)
                     depth_normalized = obs['agentview_depth']
                     depth_normalized = cv2.flip(depth_normalized, 0)
-                    depth_img = camera_utils.get_real_depth_map(self.env.env.sim, depth_normalized)
+                    depth_img = camera_utils.get_real_depth_map(self.core_env.sim, depth_normalized)
                     # save the rgb image
                     cv2.imwrite(os.path.join(self.save_paired_images_folder_path, "{}_rgb".format(self.robot_name.lower()), str(demo_index), "{}.jpg".format(step_i)), cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR) * 255)
                     # save the segmentation mask
@@ -170,7 +170,7 @@ class TargetRobot(Robot):
                     depth_normalized = obs['agentview_depth']
                     depth_normalized = cv2.flip(depth_normalized, 0)
 
-                    depth_img = camera_utils.get_real_depth_map(self.env.env.sim, depth_normalized)
+                    depth_img = camera_utils.get_real_depth_map(self.core_env.sim, depth_normalized)
 
                     points = self.image_to_pointcloud(depth_normalized, "agentview", 84, 84, segmask=None) # may need to change to 256, 256
                     timestep_info_dict = {
@@ -180,8 +180,8 @@ class TargetRobot(Robot):
                                 "seg": segmentation_mask,
                                 "real_depth_map": depth_img,
                                 "points": points,
-                                "extrinsic_matrix": camera_utils.get_camera_extrinsic_matrix(self.env.env.sim, camera_name="agentview"),
-                                "intrinsic_matrix": camera_utils.get_camera_intrinsic_matrix(self.env.env.sim, camera_name="agentview", camera_height=84, camera_width=84),
+                                "extrinsic_matrix": camera_utils.get_camera_extrinsic_matrix(self.core_env.sim, camera_name="agentview"),
+                                "intrinsic_matrix": camera_utils.get_camera_intrinsic_matrix(self.core_env.sim, camera_name="agentview", camera_height=84, camera_width=84),
                             },
                             "low_dim": {
                                 "joint_angles": joint_angles,
@@ -211,9 +211,6 @@ class TargetRobot(Robot):
                             inpainted_image = self.ros_inpaint_publisher.get_inpainted_image(True)
                             inpainted_image = inpainted_image.astype(np.float32) / 255.0
                             print("Received inpainted image")
-
-                        if self.naive:
-                            inpainted_image = rgb_img                     
                         
                         if self.use_diffusion:
                             if self.diffusion_input == "target_robot":
@@ -244,12 +241,15 @@ class TargetRobot(Robot):
                     if self.inpaint_writer is not None:
                         self.inpaint_writer.append_data((inpainted_image * 255).astype(np.uint8))
 
+                if self.naive:
+                    rgb_img = obs['agentview_image']
+                    np.save(f"{self.save_stats_path}/naive_input.npy", rgb_img, allow_pickle=True)
 
                 # Pickle the object and send it to the server
                 data_string = pickle.dumps(variable)
                 message_length = struct.pack("!I", len(data_string))
-                self.s.send(message_length)
-                self.s.send(data_string)
+                self.s.sendall(message_length)
+                self.s.sendall(data_string)
             
                 
             # receive target object state and target robot pose from target robot
@@ -290,13 +290,13 @@ class TargetRobot(Robot):
                     # append gripper action
                     action = np.concatenate([action, source_env_robot_state.action[-1:]])
                     if self.inpaint_enabled:
-                        inpaint_action = timestep_info_dict["source_robot"]["inpainting"]["predicted_state"][:7] # only get position and quarternion of the target state and not the gripper part
-                        inpaint_action = np.concatenate([inpaint_action, timestep_info_dict["source_robot"]["inpainting"]["predicted_action"][-1:]])
+                        # inpaint_action = timestep_info_dict["source_robot"]["inpainting"]["predicted_state"][:7] # only get position and quarternion of the target state and not the gripper part
+                        # inpaint_action = np.concatenate([inpaint_action, timestep_info_dict["source_robot"]["inpainting"]["predicted_action"][-1:]])
 
                         inpaint_action = timestep_info_dict["source_robot"]["ground_truth"]["target_state"][:7] # only get position and quarternion of the target state and not the gripper part
                         inpaint_action = np.concatenate([inpaint_action, timestep_info_dict["source_robot"]["inpainting"]["predicted_action"][-1:]])
 
-                        predicted_state_with_gt_action = np.concatenate([timestep_info_dict["source_robot"]["inpainting"]["predicted_state_from_gt"][:7], action[-1:]])
+                        # predicted_state_with_gt_action = np.concatenate([timestep_info_dict["source_robot"]["inpainting"]["predicted_state_from_gt"][:7], action[-1:]])
                         
                         timestep_info_dict["ground_truth_action"] = action
                         timestep_info_dict["inpaint_action"] = inpaint_action
@@ -307,7 +307,7 @@ class TargetRobot(Robot):
                             action = inpaint_action
                             print("Use predicted_state_with_gt_action action")
                             # print("Predicted from gt action: ", predicted_state_with_gt_action)
-                            action = predicted_state_with_gt_action
+                            # action = predicted_state_with_gt_action
                 else:
                     action_0, action_1 = source_env_robot_state.robot_pose[:7], source_env_robot_state.robot_pose[7:]
                     # append gripper action
@@ -321,15 +321,15 @@ class TargetRobot(Robot):
                 trajectory_timestep_infos.append(timestep_info_dict)
 
                 # if the file does not exist:
-                if not os.path.exists(self.inpaint_data_for_analysis_path_temp):
-                    # create the file and save the trajectory_timestep_infos
-                    np.save(self.inpaint_data_for_analysis_path_temp, [trajectory_timestep_infos], allow_pickle=True)
-                # else, append the timestep_info_dict to the last trajectory in the file
-                else:
-                    trajectory_timestep_infos_temp = np.load(self.inpaint_data_for_analysis_path_temp, allow_pickle=True)
-                    trajectory_timestep_infos_temp = trajectory_timestep_infos_temp.tolist()
-                    trajectory_timestep_infos_temp[-1].append(timestep_info_dict)
-                    np.save(self.inpaint_data_for_analysis_path_temp, trajectory_timestep_infos_temp, allow_pickle=True)
+                # if not os.path.exists(self.inpaint_data_for_analysis_path_temp):
+                #     # create the file and save the trajectory_timestep_infos
+                #     np.save(self.inpaint_data_for_analysis_path_temp, [trajectory_timestep_infos], allow_pickle=True)
+                # # else, append the timestep_info_dict to the last trajectory in the file
+                # else:
+                #     trajectory_timestep_infos_temp = np.load(self.inpaint_data_for_analysis_path_temp, allow_pickle=True)
+                #     trajectory_timestep_infos_temp = trajectory_timestep_infos_temp.tolist()
+                #     trajectory_timestep_infos_temp[-1].append(timestep_info_dict)
+                #     np.save(self.inpaint_data_for_analysis_path_temp, trajectory_timestep_infos_temp, allow_pickle=True)
             if success:
                 has_succeeded = True
             next_obs = deepcopy(self.obs)
@@ -351,10 +351,8 @@ class TargetRobot(Robot):
             # Pickle the object and send it to the server
             data_string = pickle.dumps(variable)
             message_length = struct.pack("!I", len(data_string))
-            self.s.send(message_length)
+            self.s.sendall(message_length)
             self.s.send(data_string)
-            
-            
             
             # visualization
             if self.render:

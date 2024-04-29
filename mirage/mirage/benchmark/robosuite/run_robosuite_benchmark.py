@@ -5,13 +5,14 @@ import argparse
 
 def main():
     parser = argparse.ArgumentParser(description="Mirage Robosuite Benchmark")
-    parser.add_argument("--config_file", type=str)
+    parser.add_argument("--config", type=str)
+    parser.add_argument("-y", action="store_true")
     args = parser.parse_args()
 
-    print("Loading config from: ", args.config_file)
-    config = ExperimentRobotsuiteConfig.from_yaml(args.config_file)
+    print("Loading config from: ", args.config)
+    config = ExperimentRobotsuiteConfig.from_yaml(args.config)
     print(config)
-    should_launch = input("Launch the experiment? [Y/n] ")
+    should_launch = "y" if args.y else input("Launch the experiment? [Y/n] ")
     if should_launch.lower() != "y":
         print("Exiting...")
         return
@@ -21,7 +22,7 @@ def main():
     try:
         new_experiment.launch()
     except ValueError as e:
-        should_override = input("Results folder already exists. Override? [Y/n] ")
+        should_override = "y" if args.y else input("Results folder already exists. Override? [Y/n] ")
         if should_override.lower() != "y":
             print("Exiting...")
             return

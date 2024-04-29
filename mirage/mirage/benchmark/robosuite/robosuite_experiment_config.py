@@ -18,6 +18,7 @@ class ExperimentRobotsuiteConfig(ExperimentConfig):
     seed: int
     passive: bool
     connection: bool
+    naive: bool
 
     source_robot_name: str
     target_robot_name: str
@@ -49,6 +50,9 @@ class ExperimentRobotsuiteConfig(ExperimentConfig):
     # Optional gripper type for source and target
     source_gripper_type: Optional[str] = None
     target_gripper_type: Optional[str] = None
+
+    # Optional device for evaluation
+    device: Optional[str] = None
 
     def validate_config(self):
         """
@@ -88,6 +92,7 @@ class ExperimentRobotsuiteConfig(ExperimentConfig):
         table.add_row(["Seed", self.seed])
         table.add_row(["Passive", self.passive])
         table.add_row(["Connection", self.connection])
+        table.add_row(["Naive", self.naive])
         table.add_row(["Source Robot Name", self.source_robot_name])
         table.add_row(["Target Robot Name", self.target_robot_name])
         table.add_row(["Source Tracking Error Threshold", self.source_tracking_error_threshold])
@@ -104,6 +109,8 @@ class ExperimentRobotsuiteConfig(ExperimentConfig):
         table.add_row(["Target Video Path", self.target_video_path])
         table.add_row(["Source Gripper Type", self.source_gripper_type])
         table.add_row(["Target Gripper Type", self.target_gripper_type])
+        table.add_row(["Results Folder", self.results_folder])
+        table.add_row(["Device", self.device])
         return table.get_formatted_string()
     
     @staticmethod
@@ -122,6 +129,7 @@ class ExperimentRobotsuiteConfig(ExperimentConfig):
                 seed=config["seed"],
                 passive=config["passive"],
                 connection=config["connection"],
+                naive=config["naive"],
                 source_robot_name=config["source_robot_name"],
                 target_robot_name=config["target_robot_name"],
                 source_tracking_error_threshold=config["source_tracking_error_threshold"],
@@ -138,5 +146,6 @@ class ExperimentRobotsuiteConfig(ExperimentConfig):
                 source_video_path=config.get("source_video_path"),
                 target_video_path=config.get("target_video_path"),
                 source_gripper_type=config.get("source_gripper_type"),
-                target_gripper_type=config.get("target_gripper_type")
+                target_gripper_type=config.get("target_gripper_type"),
+                device=config.get("device", "cuda")
             )
