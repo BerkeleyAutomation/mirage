@@ -155,6 +155,7 @@ class Robot:
                 self.rollout_horizon = config.experiment.rollout.horizon
         
         self.core_env = self.env.env
+
         self.is_diffusion = False
         while hasattr(self.core_env, "env"):
             self.is_diffusion = True

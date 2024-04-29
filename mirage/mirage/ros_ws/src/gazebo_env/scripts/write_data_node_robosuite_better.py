@@ -367,10 +367,10 @@ class WriteData(Node):
         robosuite_rgb_image_masked_inpaint = cv2.inpaint(robosuite_rgb_image_masked,robosuite_segmentation_mask_255,inpaintRadius=3,flags=cv2.INPAINT_TELEA)
         attempt = robosuite_rgb_image_masked_inpaint * joined_depth_argmin[:,:,np.newaxis]
         inverted_joined_depth_argmin = 1 - joined_depth_argmin
-        gazebo_robot_only_lab = cv2.cvtColor(gazebo_robot_only_rgb,cv2.COLOR_BGR2LAB)
-        gazebo_robot_only_lab[:,:,0] += 50
-        gazebo_robot_only_mod = cv2.cvtColor(gazebo_robot_only_lab,cv2.COLOR_LAB2BGR)
-        gazebo_robot_only_rgb = gazebo_robot_only_mod
+        # gazebo_robot_only_lab = cv2.cvtColor(gazebo_robot_only_rgb,cv2.COLOR_BGR2LAB)
+        # gazebo_robot_only_lab[:,:,0] += 50
+        # gazebo_robot_only_mod = cv2.cvtColor(gazebo_robot_only_lab,cv2.COLOR_LAB2BGR)
+        # gazebo_robot_only_rgb = gazebo_robot_only_mod
         attempt2 = gazebo_robot_only_rgb * inverted_joined_depth_argmin[:,:,np.newaxis]
         inpainted_image = attempt + attempt2
         image_8bit = cv2.convertScaleAbs(inpainted_image)  # Convert to 8-bit image
@@ -871,7 +871,6 @@ class WriteData(Node):
             qout_msg.data = qout_list
             self.panda_joint_command_publisher_.publish(qout_msg)
             self.joint_commands_callback(qout_msg)
-            self.setupMeshes(rgb, depth_map, segmentation_data)
             # end_time = time.time()
             # print("Total time: " + str(end_time - start_time) + " s")
 
@@ -890,7 +889,6 @@ class WriteData(Node):
         #         msg.data.append(gripper_val)
         self.joint_state_msg.position = msg.data
         self.thetas_ = {key:value for key,value in zip(self.joint_state_msg.name,msg.data)}
-        self.fks_ = self.chain_.forward_kinematics(self.thetas_)
         self.panda_joint_state_publisher_.publish(self.joint_state_msg)
 
 

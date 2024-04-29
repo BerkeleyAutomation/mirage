@@ -52,6 +52,17 @@ class TargetRobot(Robot):
                         else:
                             print("NOT USING ROS! Will use the groundtruth Franka masks instead")                        
     
+        self.should_kill_early = False
+        
+        import threading
+        self.thread = threading.Thread(target=self.wait_for_skip)
+        self.thread.start()
+
+    def wait_for_skip(self):
+        while True:
+            input()
+            self.should_kill_early = True
+
     def image_to_pointcloud(self, depth_map, camera_name, camera_height=84, camera_width=84, segmask=None):
         """
         Convert depth image to point cloud
@@ -340,6 +351,11 @@ class TargetRobot(Robot):
                 if step_i - source_finished_step >= 10:
                     done = True
             
+            # If human hits enter, kill off the run, it isn't feasible
+            if self.should_kill_early:
+                self.should_kill_early = False
+                done = True
+
             # tell the source robot that the target robot is ready
             # Create an instance of Data() to send to client.
             variable = Data()
