@@ -158,14 +158,11 @@ class RobotEnv(gym.Env):
             self._robot = UR5Robot(gripper=1)
         else:
             self._robot = UR5Robot(gripper=3)
-            # self._robot.gripper.activate()
         self._robot.set_tcp(RigidTransform(translation=[0,0.0,-0.03], rotation=RigidTransform.z_axis_rotation(np.pi/2))) # Robotiq gripper
-        # self._robot.set_tcp(RigidTransform(translation=[0,0.0,0.0], rotation=RigidTransform.z_axis_rotation(3*np.pi/4))) # Franka gripper    
         
         self.source_franka_target_robotiq = True
         
         
-        # self._robot.gripper.set_speed(100) # from 0 to 100 %
         
         self._gripper_is_closed = None
         self._gripper_being_blocked = False
@@ -180,7 +177,6 @@ class RobotEnv(gym.Env):
             self.zedcam2 = None
 
         # Initialize the space mouse
-        # self._controller = SpaceMouseRobotController()
         time.sleep(0.1)
         
         
@@ -372,24 +368,15 @@ class RobotEnv(gym.Env):
             inpainted_front_image = inpainted_front_image[::-1, ::-1, :]
             inpainted_front_image_mask = inpainted_front_image_mask[::-1, ::-1, :]
             
-            # inpainted_side_image_pil = Image.fromarray(cv2.resize(inpainted_side_image, (imsize, imsize)).astype(np.uint8))
             inpainted_side_image_pil = Image.fromarray(inpainted_side_image.astype(np.uint8))
             inpainted_side_image_pil.save(os.path.join(saving_directory, "inpaintng_output.png"))
             
-            # inpainted_front_image_pil = Image.fromarray(cv2.resize(inpainted_front_image, (imsize, imsize)).astype(np.uint8))
             inpainted_front_image_pil = Image.fromarray(inpainted_front_image.astype(np.uint8))
             inpainted_front_image_pil.save(os.path.join(saving_directory, "inpaintng_output_front.png"))
             
-            # """
-            # inpainted_side_image = side_image
-            # inpainted_front_image = front_image
             
             writer = AsyncWrite(inpainted_side_image, obs_dict["third_person_image"][0], obs_dict["third_person_image"][1], traj_index, saving_directory, i, front=False)
-            writer.start()
-            
-            # writer2 = AsyncWrite(inpainted_front_image, obs_dict["third_person_image2"][0], obs_dict["third_person_image2"][1][::-1, ::-1], traj_index, saving_directory, i, front=True)
-            # writer2.start()
-            
+            writer.start()            
             
             inpainted_side_image_256 = cv2.resize(inpainted_side_image, (256, 256))
             
