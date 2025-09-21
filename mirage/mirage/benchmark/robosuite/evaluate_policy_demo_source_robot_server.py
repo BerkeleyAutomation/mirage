@@ -44,8 +44,8 @@ import random
 
 def add_black_patches(
         image: np.ndarray,
-        num_patches: int = 15,
-        max_patch_size_factor: float = 0.1,
+        num_patches: int = 10,
+        max_patch_size_factor: float = 0.15,
         seed: int | None = None
     ) -> np.ndarray:
     if seed is not None:
